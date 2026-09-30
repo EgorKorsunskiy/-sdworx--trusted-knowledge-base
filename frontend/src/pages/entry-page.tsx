@@ -19,6 +19,8 @@ export function EntryPage() {
   const [voteDate, setVoteDate] = useState("")
   const [voteWhere, setVoteWhere] = useState("")
   const [voteCorrect, setVoteCorrect] = useState<boolean>(true)
+  const [showOutdatedModal, setShowOutdatedModal] = useState(false)
+  const [outdatedReason, setOutdatedReason] = useState("")
 
   const load = () => {
     if (!publicId) return
@@ -40,6 +42,14 @@ export function EntryPage() {
     await api.votes.create(publicId, { used_at: voteDate, where_ref: voteWhere, is_correct: voteCorrect })
     setShowVoteModal(false)
     setVoteWhere("")
+    load()
+  }
+
+  const markOutdated = async () => {
+    if (!publicId || !outdatedReason.trim()) return
+    await api.outdated.mark(publicId, outdatedReason)
+    setShowOutdatedModal(false)
+    setOutdatedReason("")
     load()
   }
 
@@ -113,6 +123,7 @@ export function EntryPage() {
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button onClick={() => setShowVoteModal(true)}>Report usage</Button>
           <Button variant="secondary" onClick={copyReference}>{copied ? "Copied" : "Copy reference"}</Button>
+          <Button variant="ghost" onClick={() => setShowOutdatedModal(true)}>Mark outdated</Button>
         </div>
       </div>
 
@@ -129,6 +140,23 @@ export function EntryPage() {
           </ul>
         </div>
       )}
+
+      <Dialog open={showOutdatedModal} onClose={() => setShowOutdatedModal(false)} title="Mark as outdated">
+        <div className="space-y-4">
+          <p className="text-sm text-stone-600">Explain what changed so the author and verifiers can update the entry.</p>
+          <textarea
+            value={outdatedReason}
+            onChange={(e) => setOutdatedReason(e.target.value)}
+            placeholder="Reason"
+            className="input"
+            rows={3}
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setShowOutdatedModal(false)}>Cancel</Button>
+            <Button onClick={markOutdated} disabled={!outdatedReason.trim()}>Mark outdated</Button>
+          </div>
+        </div>
+      </Dialog>
 
       <Dialog open={showVoteModal} onClose={() => setShowVoteModal(false)} title="Report usage">
         <div className="space-y-4">

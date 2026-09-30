@@ -109,6 +109,11 @@ export const api = {
     setToken(null)
   },
   categories: () => fetchJson<Category[]>("/categories"),
+  outdated: {
+    mark: (publicId: string, reason: string) =>
+      fetchJson(`/entries/${publicId}/outdated?reason=${encodeURIComponent(reason)}`, { method: "POST" }),
+    confirm: (publicId: string) => fetchJson(`/entries/${publicId}/confirm-still-valid`, { method: "POST" }),
+  },
   votes: {
     list: (publicId: string) => fetchJson<any[]>(`/entries/${publicId}/votes`),
     create: (publicId: string, data: { used_at: string; where_ref: string; is_correct: boolean }) =>

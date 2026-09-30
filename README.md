@@ -1,29 +1,27 @@
 # Peerpoint
 
-Peer knowledge base for payroll / process guidance. Iterations 0–1: foundation + entries/versions.
+Internal knowledge base with human trust signals. Hackathon MVP covering Iterations 0–7.
 
 ## Stack
 
-- **Backend:** FastAPI, SQLAlchemy 2, SQLite
-- **Frontend:** Vite + React + TypeScript, Tailwind CSS v4, Lucide icons
+- **Backend:** FastAPI + SQLAlchemy 2 + SQLite (Python 3.11)
+- **Frontend:** Vite + React + TypeScript + Tailwind CSS + Lucide icons
 
 ## Quick start
 
 ### Backend
 
-Use **Python 3.11** (3.14 wheels are incomplete for pydantic-core):
-
 ```bash
 cd backend
 /usr/local/bin/python3.11 -m venv .venv
 source .venv/bin/activate
-pip install 'pip==24.3.1'
 pip install -r requirements.txt
-# DB + seed also run on API startup
-uvicorn app.main:app --reload --port 8000
+.venv/bin/python -m uvicorn app.main:app --reload --port 8001
 ```
 
-Health: http://127.0.0.1:8000/health
+Health: http://127.0.0.1:8001/health
+
+If port 8000 is free you can use 8000; the frontend proxy is set to 8001.
 
 ### Frontend
 
@@ -33,9 +31,7 @@ npm install
 npm run dev
 ```
 
-App: http://127.0.0.1:5173 — Vite proxies `/api/*` → backend `:8000`.
-
-Routes: `/login` (dev personas), `/` Search, `/add` Add entry, `/entries/:publicId` Entry page.
+Open http://localhost:5173 and pick a demo user.
 
 ### Tests
 
@@ -43,42 +39,30 @@ Routes: `/login` (dev personas), `/` Search, `/add` Add entry, `/entries/:public
 cd backend && source .venv/bin/activate && pytest -q
 ```
 
-## Demo users (dev login)
+## Demo users
 
-| Name | Email | Roles |
-|------|-------|-------|
-| Employee A | employee.a@sdworx.example | employee |
-| Employee B | employee.b@sdworx.example | employee |
-| Employee C | employee.c@sdworx.example | employee |
-| Senior Expert | senior.expert@sdworx.example | employee, expert |
-| Team Lead | team.lead@sdworx.example | employee, team_lead |
-| Manager | manager@sdworx.example | employee, manager |
-| Admin | admin@sdworx.example | employee, admin |
+| Name | Roles |
+|------|-------|
+| Employee A | employee |
+| Employee B | employee |
+| Employee C | employee |
+| Senior Expert | employee, expert (Payroll dept) |
+| Team Lead | employee, team_lead (own team) |
+| Manager | employee, manager (own team) |
+| Admin | employee, admin |
 
-Seeded sample entry (Employee A, Unverified): **`PP-BE-FRE-00001`**
+## Iterations implemented
 
-## Iteration 1 API
+- **0:** FastAPI + SQLite schema, seed data, React + Tailwind shell, dev login
+- **1:** Entries, versions, public IDs, add-entry form, entry page
+- **2:** Approval tab with dual-scope verification (dept experts + own-team TL/manager)
+- **3:** Ranked search
+- **4:** Usage-record votes (when/where/correct), reputation, incorrect-vote notifications
+- **5:** Outdated flags and verifier confirmation
+- **6:** Keyword duplicate-detection warning on add entry
+- **7:** In-app notifications, My contributions, Admin panel
 
-| Method | Path | Notes |
-|--------|------|-------|
-| `POST` | `/auth/dev-login` | `{ "user_id": N }` → cookie + `token` |
-| `GET` | `/auth/users` | Dev login picker |
-| `GET` | `/auth/me` | Current session |
-| `GET` | `/categories` | Seeded categories |
-| `POST` | `/entries` | Create entry + v1 (`Unverified`) |
-| `GET` | `/entries/{public_id}` | Current version + metadata + who_to_ask |
-| `GET` | `/entries/{public_id}/versions/{n}` | Historical version (read-only) |
-| `PATCH` | `/entries/{public_id}` | Author-only edit of unverified current version |
+## Notes
 
-**Public ID:** `PP-{CC}-{CAT}-{seq}` e.g. `PP-BE-FRE-00042` (stable across versions)
-
-**Required create fields:** `title`, `body`, `category_id`, `country`  
-**Scope:** `country-specific` \| `EU-wide` \| `universal`  
-**Auto-tags:** `author:…`, `department:…`, `role:…`, `date:…` (+ keywords)
-
-## Settings (seeded)
-
-- Similarity threshold: **60%**
-- Stale hint: **12 months**
-- Expert vote weight: **1.3**
-- Default category: **Freelance / contractor payroll**
+- Scope values: `country`, `eu`, `universal`
+- Public ID format: `PP-{CC}-{CAT}-{seq}` e.g. `PP-BE-FRE-00042`

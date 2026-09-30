@@ -78,3 +78,14 @@ def get_verifiers_for_entry(db: Session, entry: Entry) -> list[User]:
     if not result:
         return []
     return db.query(User).options(joinedload(User.roles)).filter(User.id.in_(list(result))).all()
+
+
+def verifier_role_badge(user: User) -> str:
+    roles = {r.role for r in user.roles}
+    if RoleType.MANAGER.value in roles:
+        return "Manager"
+    if RoleType.TEAM_LEAD.value in roles:
+        return "Team Lead"
+    if RoleType.EXPERT.value in roles:
+        return "Senior Expert"
+    return "Verifier"

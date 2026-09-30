@@ -109,6 +109,13 @@ export const api = {
     setToken(null)
   },
   categories: () => fetchJson<Category[]>("/categories"),
+  votes: {
+    list: (publicId: string) => fetchJson<any[]>(`/entries/${publicId}/votes`),
+    create: (publicId: string, data: { used_at: string; where_ref: string; is_correct: boolean }) =>
+      fetchJson(`/entries/${publicId}/votes`, { method: "POST", body: JSON.stringify(data) }),
+    withdraw: (publicId: string, voteId: number) =>
+      fetchJson(`/entries/${publicId}/votes/${voteId}`, { method: "DELETE" }),
+  },
   entries: {
     create: (data: {
       title: string

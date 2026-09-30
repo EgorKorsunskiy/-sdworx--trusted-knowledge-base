@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.routers import approvals, auth, categories, entries, health, search
+from app.routers import approvals, auth, categories, entries, health, search, votes
 from app.seeds import seed_all
 
 app = FastAPI(title=settings.app_name)
@@ -23,6 +23,7 @@ app.include_router(categories.router)
 app.include_router(entries.router)
 app.include_router(approvals.router)
 app.include_router(search.router)
+app.include_router(votes.router)
 
 
 @app.on_event("startup")

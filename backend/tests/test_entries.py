@@ -67,7 +67,7 @@ def test_create_entry_and_public_id(client):
             "body": "x",
             "category_id": 1,
             "country": "BE",
-            "scope": "country-specific",
+            "scope": "country",
         },
     )
     assert bad.status_code == 422
@@ -81,7 +81,7 @@ def test_create_entry_and_public_id(client):
             "justification": "HR handbook",
             "category_id": 1,
             "country": "BE",
-            "scope": "EU-wide",
+            "scope": "eu",
             "keywords": ["travel", "contractor"],
         },
     )

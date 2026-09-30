@@ -7,6 +7,9 @@ import { AddEntryPage } from "@/pages/add-entry-page"
 import { EntryPage } from "@/pages/entry-page"
 import { PlaceholderPage } from "@/pages/placeholder-page"
 import { ApprovalsPage } from "@/pages/approvals-page"
+import { NotificationsPage } from "@/pages/notifications-page"
+import { ContributionsPage } from "@/pages/contributions-page"
+import { AdminPage } from "@/pages/admin-page"
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -29,8 +32,9 @@ function AppRoutes() {
                 <Route path="/add" element={<AddEntryPage />} />
                 <Route path="/entries/:publicId" element={<EntryPage />} />
                 <Route path="/approvals" element={<ApprovalsPage />} />
-                <Route path="/contributions" element={<PlaceholderPage title="My contributions" />} />
-                <Route path="/admin" element={<PlaceholderPage title="Admin" />} />
+                <Route path="/contributions" element={<ContributionsPage />} />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
               </Routes>
             </AppShell>
           </RequireAuth>

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.routers import approvals, auth, categories, entries, health, outdated, search, similar, votes
+from app.routers import admin, approvals, auth, categories, contributions, entries, health, notifications, outdated, search, similar, votes
 from app.seeds import seed_all
 
 app = FastAPI(title=settings.app_name)
@@ -19,6 +19,9 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(notifications.router)
+app.include_router(contributions.router)
+app.include_router(admin.router)
 app.include_router(categories.router)
 app.include_router(entries.router)
 app.include_router(approvals.router)

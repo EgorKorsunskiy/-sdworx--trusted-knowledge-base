@@ -1,6 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Search, Plus, ClipboardCheck, FolderKanban, Shield, Bell, User } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
+import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 
 const navItems = [
@@ -15,6 +17,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const [unread, setUnread] = useState(0)
+
+  useEffect(() => {
+    api.notifications.unreadCount().then((r: any) => setUnread(r.count)).catch(() => {})
+  }, [location.pathname])
 
   if (!user) return <>{children}</>
 
@@ -50,9 +57,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </nav>
           <div className="ml-auto flex items-center gap-3 text-sm">
-            <button className="relative rounded-md p-1.5 text-stone-500 hover:bg-stone-100 hover:text-stone-900">
+            <Link to="/notifications" className="relative rounded-md p-1.5 text-stone-500 hover:bg-stone-100 hover:text-stone-900">
               <Bell className="h-5 w-5" />
-            </button>
+              {unread > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />}
+            </Link>
             <div className="flex items-center gap-2">
               <User className="h-5 w-5 text-stone-400" />
               <span className="hidden sm:inline text-stone-600">{user.display_name}</span>

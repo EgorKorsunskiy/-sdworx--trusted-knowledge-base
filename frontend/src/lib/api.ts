@@ -109,6 +109,19 @@ export const api = {
     setToken(null)
   },
   categories: () => fetchJson<Category[]>("/categories"),
+  notifications: {
+    list: () => fetchJson<any[]>("/notifications"),
+    unreadCount: () => fetchJson<{ count: number }>("/notifications/unread-count"),
+    markRead: (id: number) => fetchJson(`/notifications/${id}/read`, { method: "POST" }),
+  },
+  contributions: () => fetchJson<any>("/me/contributions"),
+  admin: {
+    settings: () => fetchJson<any[]>("/admin/settings"),
+    updateSetting: (key: string, value: string) => fetchJson(`/admin/settings/${key}?value=${encodeURIComponent(value)}`, { method: "PUT" }),
+    mappings: () => fetchJson<any[]>("/admin/verifier-mappings"),
+    addMapping: (userId: number, department: string) =>
+      fetchJson(`/admin/verifier-mappings?user_id=${userId}&department=${encodeURIComponent(department)}`, { method: "POST" }),
+  },
   similar: (title: string, body: string) =>
     fetchJson(`/entries/similar?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`),
   outdated: {

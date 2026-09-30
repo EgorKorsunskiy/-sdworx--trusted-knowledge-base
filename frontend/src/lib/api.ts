@@ -129,4 +129,10 @@ export const api = {
         body: JSON.stringify(data),
       }),
   },
+  approvals: {
+    pending: () => fetchJson<any[]>("/approvals/pending"),
+    verify: (versionId: number) => fetchJson(`/approvals/${versionId}/verify`, { method: "POST" }),
+    sendBack: (versionId: number, comment?: string) =>
+      fetchJson(`/approvals/${versionId}/send-back?comment=${encodeURIComponent(comment || "")}`, { method: "POST" }),
+  },
 }

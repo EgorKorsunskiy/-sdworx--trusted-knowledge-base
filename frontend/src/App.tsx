@@ -6,6 +6,7 @@ import { SearchPage } from "@/pages/search-page"
 import { AddEntryPage } from "@/pages/add-entry-page"
 import { EntryPage } from "@/pages/entry-page"
 import { PlaceholderPage } from "@/pages/placeholder-page"
+import { ApprovalsPage } from "@/pages/approvals-page"
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -27,7 +28,7 @@ function AppRoutes() {
                 <Route path="/" element={<SearchPage />} />
                 <Route path="/add" element={<AddEntryPage />} />
                 <Route path="/entries/:publicId" element={<EntryPage />} />
-                <Route path="/approvals" element={<PlaceholderPage title="Approvals" />} />
+                <Route path="/approvals" element={<ApprovalsPage />} />
                 <Route path="/contributions" element={<PlaceholderPage title="My contributions" />} />
                 <Route path="/admin" element={<PlaceholderPage title="Admin" />} />
               </Routes>

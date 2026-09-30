@@ -109,6 +109,8 @@ export const api = {
     setToken(null)
   },
   categories: () => fetchJson<Category[]>("/categories"),
+  similar: (title: string, body: string) =>
+    fetchJson(`/entries/similar?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`),
   outdated: {
     mark: (publicId: string, reason: string) =>
       fetchJson(`/entries/${publicId}/outdated?reason=${encodeURIComponent(reason)}`, { method: "POST" }),

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 
-from app.models import Category, Entry, EntryVersion, User, VersionStatus
+from app.models import Category, Entry, EntryVersion, VersionStatus
 
 
 def _role_rank(status: str, role: str | None) -> int:
@@ -47,7 +47,7 @@ def search_entries(
     if category:
         q = q.join(Category).filter(Category.name.ilike(category))
     if status:
-        q = q.filter(EntryVersion.status == status.lower())
+        q = q.filter(EntryVersion.status.ilike(status))
 
     results = q.options().all()
 
@@ -64,18 +64,23 @@ def search_entries(
 
         # Country match: prefer user's country or requested country
         target = user_country or country
-        if target and entry.country and target.lower() in (entry.country.lower(), ""):
+        entry_country = (entry.country or "").lower()
+        if target and entry_country and target.lower()[:2] == entry_country[:2]:
             s += 20
-        if entry.scope == "universal":
+        if entry.scope in ("universal",):
             s += 10
-        if entry.scope == "eu":
+        if entry.scope in ("eu", "EU-wide"):
             s += 5
 
         # Freshness / outdated penalty
         if version.status == VersionStatus.OUTDATED.value:
             s -= 50
-        else:
-            age_days = (datetime.now(timezone.utc) - version.created_at).days
+        elif version.created_at is not None:
+            created = version.created_at
+            now = datetime.now(timezone.utc) if created.tzinfo else datetime.utcnow()
+            if created.tzinfo is None and now.tzinfo:
+                created = created.replace(tzinfo=timezone.utc)
+            age_days = max((now - created).days, 0)
             s -= min(age_days, 365) / 365 * 5
 
         # Author reputation tie-break

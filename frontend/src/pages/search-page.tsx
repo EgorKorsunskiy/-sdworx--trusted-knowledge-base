@@ -11,13 +11,17 @@ export function SearchPage() {
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<any[]>([])
   const [searched, setSearched] = useState(false)
+  const [error, setError] = useState("")
 
   const doSearch = async () => {
     setSearched(true)
-    const params = new URLSearchParams()
-    if (query) params.set("q", query)
-    const res = await fetch(`/api/search?${params.toString()}`, { credentials: "include" })
-    if (res.ok) setResults(await res.json())
+    setError("")
+    try {
+      setResults(await api.search(query))
+    } catch (err: unknown) {
+      setResults([])
+      setError(err instanceof Error ? err.message : "Search failed")
+    }
   }
 
   useEffect(() => {
@@ -44,6 +48,11 @@ export function SearchPage() {
         <span className="rounded-full bg-white px-3 py-1 ring-1 ring-inset ring-stone-200">Country: Belgium</span>
         <span className="rounded-full bg-white px-3 py-1 ring-1 ring-inset ring-stone-200">Department: Payroll</span>
       </div>
+      {error && (
+        <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-inset ring-red-600/20">
+          {error}
+        </div>
+      )}
       <div className="mt-6 list-panel">
         {results.length === 0 && searched ? (
           <div className="p-8 text-center text-sm text-stone-500">No results.</div>

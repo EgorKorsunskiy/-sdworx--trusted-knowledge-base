@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link to="/" className="text-sm font-semibold tracking-tight">
             Peerpoint
           </Link>
-          <nav className="hidden sm:flex items-center gap-1 text-sm font-medium">
+          <nav className="flex flex-wrap items-center gap-1 text-sm font-medium">
             {navItems.map((item) => {
               const active = location.pathname === item.to || location.pathname.startsWith(item.to + "/")
               return (

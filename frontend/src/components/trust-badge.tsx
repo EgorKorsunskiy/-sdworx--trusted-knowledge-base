@@ -16,7 +16,7 @@ export function TrustBadge({ status, verifierRole }: TrustBadgeProps) {
       </Badge>
     )
   }
-  if (s === "outdated") {
+  if (s === "outdated" || s === "stale") {
     return (
       <Badge variant="outdated">
         <AlertCircle className="h-3.5 w-3.5" />

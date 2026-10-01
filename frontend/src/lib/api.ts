@@ -122,6 +122,12 @@ export const api = {
     addMapping: (userId: number, department: string) =>
       fetchJson(`/admin/verifier-mappings?user_id=${userId}&department=${encodeURIComponent(department)}`, { method: "POST" }),
   },
+  search: (q = "") => {
+    const params = new URLSearchParams()
+    if (q) params.set("q", q)
+    const qs = params.toString()
+    return fetchJson<Entry[]>(`/search${qs ? `?${qs}` : ""}`)
+  },
   similar: (title: string, body: string) =>
     fetchJson(`/entries/similar?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`),
   outdated: {

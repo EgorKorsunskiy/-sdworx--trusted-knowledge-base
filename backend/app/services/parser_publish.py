@@ -119,8 +119,3 @@ def publish(db: Session, sug: Suggestion, entry: Entry, saver: User, basis: str,
             info.notify(db, s.user_id, "meme_published", "Your meme was published",
                         f"{saver.display_name} added “{meme.title}” as {entry.public_id}. You are a co-author.", link)
             told.add(s.user_id)
-    for v in meme.votes:  # participants who voted on it hear that it was published
-        if v.user_id not in told:
-            info.notify(db, v.user_id, "meme_published", "A meme you voted on was published",
-                        f"“{meme.title}” is now {entry.public_id}.", link)
-            told.add(v.user_id)

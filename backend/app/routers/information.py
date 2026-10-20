@@ -29,10 +29,6 @@ class RejectIn(BaseModel):
     reason: str | None = Field(default=None, max_length=500)
 
 
-class VoteIn(BaseModel):
-    useful: bool
-
-
 @router.get("/summary")
 def summary(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
     """Section counts and the number shown on the navigation item (FR-MS16): To decide plus Co-author requests."""
@@ -122,25 +118,6 @@ def reopen(suggestion_id: int, db: Session = Depends(get_db), user: User = Depen
 @router.post("/suggestions/{suggestion_id}/withdraw")
 def withdraw(suggestion_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
     return _decide(db, user, suggestion_id, info.withdraw)
-
-
-@router.put("/memes/{meme_id}/vote")
-def vote(meme_id: int, body: VoteIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
-    """Vote a meme useful or not useful; a second vote replaces the first (FR-MV1, FR-MV2)."""
-    meme = _run(info.get_visible_meme, db, user, meme_id)
-    _run(info.set_vote, db, meme, user, body.useful)
-    db.commit()
-    db.refresh(meme)
-    return info.meme_out(db, meme, user)
-
-
-@router.delete("/memes/{meme_id}/vote")
-def withdraw_vote(meme_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> dict:
-    meme = _run(info.get_visible_meme, db, user, meme_id)
-    _run(info.set_vote, db, meme, user, None)
-    db.commit()
-    db.refresh(meme)
-    return info.meme_out(db, meme, user)
 
 
 # ---- Add to repository (iteration 21) ----------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 """AI parser data (specs/ai-parser/FUNCTIONAL_SPEC.md): sources, memes, per-candidate suggestions with an
-append-only decision history, usefulness votes and co-authorship requests.
+append-only decision history and co-authorship requests.
 
 These are the tables the Information overview needs. Sources and memes are filled by an agent (for the demo, the stub
 agent in ``app.services.parser_agent`` that reads ``mock_data/sources``)."""
@@ -114,7 +114,6 @@ class Meme(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default=MemeStatus.NEW.value, index=True)
     entry_id: Mapped[int | None] = mapped_column(ForeignKey("entries.id"), nullable=True, index=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    nudged_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     similar_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -130,7 +129,6 @@ class Meme(Base):
     suggestions: Mapped[list["Suggestion"]] = relationship(
         back_populates="meme", cascade="all, delete-orphan", order_by="Suggestion.id"
     )
-    votes: Mapped[list["UsefulnessVote"]] = relationship(back_populates="meme", cascade="all, delete-orphan")
     coauthor_requests: Mapped[list["CoauthorRequest"]] = relationship(
         back_populates="meme", cascade="all, delete-orphan", order_by="CoauthorRequest.id"
     )
@@ -200,23 +198,6 @@ class SuggestionEvent(Base):
 @event.listens_for(SuggestionEvent, "before_delete")
 def _history_is_append_only(mapper, connection, target):
     raise RuntimeError("meme_suggestion_events is append-only")
-
-
-class UsefulnessVote(Base):
-    """A participant's judgement of a colleague's meme; separate from usage-record votes on entries."""
-
-    __tablename__ = "meme_votes"
-    __table_args__ = (UniqueConstraint("meme_id", "user_id", name="uq_meme_vote"),)
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    meme_id: Mapped[int] = mapped_column(ForeignKey("memes.id"), nullable=False, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    useful: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    meme: Mapped["Meme"] = relationship(back_populates="votes")
-    user = relationship("User")
 
 
 class CoauthorRequest(Base):

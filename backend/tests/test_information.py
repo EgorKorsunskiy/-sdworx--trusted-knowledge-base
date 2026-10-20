@@ -1,4 +1,4 @@
-"""AI parser: Information overview (Yours / Others), decisions with history, visibility, usefulness votes."""
+"""AI parser: Information overview (Yours / Others), decisions with history, visibility, co-authorship."""
 
 import pytest
 
@@ -151,13 +151,11 @@ def test_only_participants_see_a_source(parser):
     assert _get(parser, A, "/information/memes/99999").status_code == 404
 
 
-def test_non_participants_cannot_decide_or_vote_or_request(parser):
+def test_non_participants_cannot_decide_or_request(parser):
     meme = _meme(parser, A, CUTOFF, "Payroll BE weekly")
     sid = meme["suggestions"][0]["id"]
     assert _approve(parser, SENIOR, sid).status_code == 404
     assert _post(parser, SENIOR, f"/information/suggestions/{sid}/postpone").status_code == 404
-    assert parser.put(f"/information/memes/{meme['id']}/vote", headers=login(parser, SENIOR),
-                      json={"useful": True}).status_code == 404
     body = {"basis": "responsible"}
     assert _post(parser, SENIOR, f"/information/memes/{meme['id']}/coauthor-requests", body).status_code == 404
     assert _get(parser, SENIOR, f"/information/suggestions/{sid}/prefill").status_code == 404
@@ -286,10 +284,9 @@ def test_all_candidates_rejecting_declines_the_meme(parser):
     _post(parser, A, f"/information/suggestions/{sa}/reject", {})
     r = _post(parser, C, f"/information/suggestions/{sc}/reject", {"reason": "incorrect"})
     assert r.json()["meme"]["status"] == "declined"
-    # no longer publishable or votable
+    # no longer publishable
     assert _post(parser, B, f"/information/suggestions/{sa}/approve", {"basis": "responsible"}).status_code == 403
-    assert parser.put(f"/information/memes/{r.json()['meme']['id']}/vote", headers=login(parser, B),
-                      json={"useful": True}).status_code == 409
+    assert _post(parser, A, f"/information/suggestions/{sa}/approve", {"basis": "responsible"}).status_code == 409
 
 
 def test_withdraw_returns_the_meme_to_new(parser):
@@ -368,69 +365,6 @@ def test_notifications_open_the_right_page(parser):
     assert loc["tab"] == "others"
     assert _get(parser, SENIOR, "/information/locate", params={"suggestion": sid}).status_code == 404
     assert _get(parser, A, "/information/locate").status_code == 422
-
-
-# --- usefulness votes (FR-MV, BR-M4) -------------------------------------------------------------------------------------
-
-
-def test_usefulness_votes(parser):
-    meme = _meme(parser, B, CUTOFF, tab="others")
-    mid = meme["id"]
-
-    def vote(uid, useful):
-        return parser.put(f"/information/memes/{mid}/vote", headers=login(parser, uid), json={"useful": useful})
-
-    assert vote(A, True).status_code == 403  # a candidate who has not rejected cannot vote
-    assert vote(C, True).status_code == 403
-    r = vote(B, True)
-    assert r.status_code == 200 and r.json()["votes"]["useful"] == 1 and r.json()["votes"]["my_vote"] is True
-    r = vote(B, False)  # a second vote replaces the first
-    assert r.json()["votes"] == {"useful": 0, "not_useful": 1, "my_vote": False, "blocked_reason": None}
-    assert parser.delete(f"/information/memes/{mid}/vote", headers=login(parser, B)).json()["votes"]["my_vote"] is None
-    # everyone in the source sees the counts, candidates included
-    vote(B, True)
-    assert _meme(parser, A, CUTOFF, "Payroll BE weekly")["votes"]["useful"] == 1
-    # a candidate may vote after rejecting; a postponed suggestion is not a rejection
-    sa = _sug(parser, A, CUTOFF, "Payroll BE weekly")
-    _post(parser, A, f"/information/suggestions/{sa}/postpone")
-    assert vote(A, True).status_code == 403
-    _post(parser, A, f"/information/suggestions/{sa}/reopen")
-    _post(parser, A, f"/information/suggestions/{sa}/reject", {})
-    assert vote(A, False).status_code == 200
-
-
-def test_useful_threshold_nudges_pending_candidates_only(parser):
-    meme = _meme(parser, B, CUTOFF, tab="others")
-    mid = meme["id"]
-    sc = _sug(parser, C, CUTOFF, "Payroll BE weekly")
-    _post(parser, C, f"/information/suggestions/{sc}/postpone")  # postponed candidates are not nudged
-    for uid in (B, TEAM_LEAD):
-        parser.put(f"/information/memes/{mid}/vote", headers=login(parser, uid), json={"useful": True})
-
-    def nudges(uid):
-        return [n for n in _get(parser, uid, "/notifications").json() if n["event_type"] == "useful_threshold"]
-
-    assert nudges(A) == []
-    parser.put(f"/information/memes/{mid}/vote", headers=login(parser, MANAGER), json={"useful": True})
-    assert len(nudges(A)) == 1 and "section=to_decide" in nudges(A)[0]["link"]
-    assert nudges(C) == []
-    parser.put(f"/information/memes/{mid}/vote", headers=login(parser, MANAGER), json={"useful": False})
-    parser.put(f"/information/memes/{mid}/vote", headers=login(parser, MANAGER), json={"useful": True})
-    assert len(nudges(A)) == 1  # nudged once
-
-
-def test_voting_closes_once_published(parser):
-    sid = _sug(parser, C, CUTOFF, "Payroll BE weekly")
-    _approve(parser, C, sid)
-    mid = _meme(parser, C, CUTOFF, "Payroll BE weekly")["id"]
-    assert parser.put(f"/information/memes/{mid}/vote", headers=login(parser, B), json={"useful": True}).status_code == 200
-    form = _get(parser, C, f"/information/suggestions/{sid}/prefill").json()
-    r = _publish(parser, C, sid, form)
-    assert r.status_code == 201, r.text
-    r = parser.put(f"/information/memes/{mid}/vote", headers=login(parser, B), json={"useful": False})
-    assert r.status_code == 409
-    # the counts froze
-    assert _meme(parser, B, CUTOFF, tab="others")["votes"]["useful"] == 1
 
 
 # --- publishing (FR-MP, UC-M4) ----------------------------------------------------------------------------------------------
@@ -772,7 +706,8 @@ def test_import_is_idempotent_and_admins_cannot_read_foreign_conversations(parse
 
 def test_agent_settings_are_admin_only_and_validated(parser):
     keys = {s["key"] for s in _get(parser, ADMIN, "/admin/settings").json()}
-    assert {"parser_confidence_threshold", "parser_useful_vote_threshold", "parser_raw_retention_days"} <= keys
+    assert {"parser_confidence_threshold", "parser_raw_retention_days"} <= keys
+    assert "parser_useful_vote_threshold" not in keys  # usefulness votes are gone
 
     def put(uid, key, value):
         return parser.put(f"/admin/settings/{key}", params={"value": value}, headers=login(parser, uid))
@@ -781,18 +716,7 @@ def test_agent_settings_are_admin_only_and_validated(parser):
     assert put(ADMIN, "parser_confidence_threshold", "0.7").status_code == 200
     assert put(ADMIN, "parser_confidence_threshold", "1.5").status_code == 422
     assert put(ADMIN, "parser_confidence_threshold", "high").status_code == 422
-    assert put(ADMIN, "parser_useful_vote_threshold", "0").status_code == 422
-    assert put(ADMIN, "parser_useful_vote_threshold", "2").status_code == 200
     assert put(ADMIN, "parser_raw_retention_days", "7").status_code == 200
-
-
-def test_nudge_threshold_follows_the_admin_setting(parser):
-    assert parser.put("/admin/settings/parser_useful_vote_threshold", params={"value": "1"},
-                      headers=login(parser, ADMIN)).status_code == 200
-    mid = _meme(parser, B, CUTOFF, tab="others")["id"]
-    parser.put(f"/information/memes/{mid}/vote", headers=login(parser, B), json={"useful": True})
-    nudges = [n for n in _get(parser, A, "/notifications").json() if n["event_type"] == "useful_threshold"]
-    assert len(nudges) == 1
 
 
 def test_my_contributions_lists_coauthored_entries(published):
@@ -804,3 +728,23 @@ def test_my_contributions_lists_coauthored_entries(published):
     assert [e["public_id"] for e in mine["co_authored"]] == [entry["public_id"]]
     assert mine["co_authored"][0]["author"]["display_name"] == "Employee C"
     assert entry["public_id"] not in {e["public_id"] for e in mine["entries"]}  # not the author
+
+
+# --- no likes or dislikes ---------------------------------------------------------------------------------------------------
+
+
+def test_there_are_no_usefulness_votes(parser):
+    meme = _meme(parser, B, CUTOFF, tab="others")
+    assert "votes" not in meme
+    for method in (parser.put, parser.delete):
+        r = method(f"/information/memes/{meme['id']}/vote", headers=login(parser, B), **({"json": {"useful": True}} if method == parser.put else {}))
+        assert r.status_code in (404, 405)
+    assert not [n for n in _get(parser, A, "/notifications").json() if n["event_type"] == "useful_threshold"]
+
+
+def test_meme_detail_lists_pending_requests_for_authors(published):
+    client, entry, mid = published
+    _request(client, A, mid)
+    detail = _get(client, C, f"/information/memes/{mid}").json()
+    assert [r["requester"]["display_name"] for r in detail["pending_requests"]] == ["Employee A"]
+    assert _get(client, B, f"/information/memes/{mid}").json()["pending_requests"] == []  # only authors see them

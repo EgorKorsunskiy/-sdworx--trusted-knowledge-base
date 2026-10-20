@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { CalendarDays, ChevronDown, ChevronUp, MessageCircle, Users, ThumbsDown, ThumbsUp, TriangleAlert } from "lucide-react"
+import { CalendarDays, MessageCircle, Users, TriangleAlert } from "lucide-react"
 import {
   api,
   type CoauthorRequestOut,
@@ -314,23 +314,29 @@ type DialogState =
   | null
 
 /**
- * One item of the Information overview: a suggestion (Yours), a colleague's meme (Others) or a co-author request.
- * Decision buttons exist only on the user's own suggestions; Others has voting and co-authorship requests only.
+ * One item of the Information overview.
+ *
+ * In the list (`variant="list"`) an item is compact: statement, source, who said and confirmed it, the user's own
+ * decision and the actions. Clicking it opens the detail page (`variant="detail"`), which adds scope, category, tags,
+ * the other candidates and their decisions, authors, similar entries, quotes with context and the decision history.
+ * Decision buttons exist only on the user's own suggestions.
  */
 export function MemeCard({
   item,
+  variant = "list",
   highlight,
   onChanged,
 }: {
   item: OverviewItem
+  variant?: "list" | "detail"
   highlight?: boolean
   onChanged: () => void
 }) {
   const navigate = useNavigate()
+  const detail = variant === "detail"
   const meme = item.meme
   const mine = meme.suggestions.find((s) => s.is_mine) ?? null
   const others = meme.suggestions.filter((s) => !s.is_mine)
-  const [open, setOpen] = useState(!!highlight)
   const [dialog, setDialog] = useState<DialogState>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
@@ -356,12 +362,26 @@ export function MemeCard({
   const isYoursSuggestion = item.type === "suggestion" && mine !== null
   const open_ = mine && (mine.state === "pending" || mine.state === "postponed")
   const requestable = meme.can_request_coauthorship && !meme.is_author && !(item.type === "suggestion" && open_)
+  const detailPath = `/information/memes/${meme.id}`
+
+  // In the list the whole card opens the detail page, except where the click was meant for a button or link
+  const openDetail = (e: React.MouseEvent) => {
+    if (detail) return
+    if ((e.target as HTMLElement).closest("a, button, input, select, textarea, [role=dialog]")) return
+    navigate(detailPath)
+  }
 
   return (
-    <div id={`item-${item.type}-${item.id}`} className={`p-5 ${highlight ? "bg-amber-50/50" : ""}`}>
+    <div
+      id={`item-${item.type}-${item.id}`}
+      onClick={openDetail}
+      className={`p-5 ${highlight ? "bg-amber-50/50" : ""} ${detail ? "" : "cursor-pointer hover:bg-stone-50"}`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-medium">{meme.title}</h3>
+          <h3 className={detail ? "text-xl font-semibold tracking-tight" : "font-medium"}>
+            {detail ? meme.title : <Link to={detailPath} className="hover:underline">{meme.title}</Link>}
+          </h3>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-stone-500">
             {meme.source.kind === "meeting" ? <Users className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
             {meme.source.kind === "meeting" ? "Meeting" : "Group chat"}: {meme.source.title}
@@ -375,7 +395,7 @@ export function MemeCard({
         </div>
       </div>
 
-      <p className="mt-3 text-sm leading-6 text-stone-800">{meme.statement}</p>
+      <p className={`mt-3 text-sm leading-6 text-stone-800 ${detail ? "" : "line-clamp-3"}`}>{meme.statement}</p>
 
       {meme.sensitive && (
         <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-800">
@@ -384,11 +404,14 @@ export function MemeCard({
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
-        <Badge variant="neutral">{meme.scope_label}</Badge>
-        {meme.category && <span className="text-stone-500">{meme.category}</span>}
-        {meme.tags.map((t) => <TagChip key={t.id} tag={t} />)}
-      </div>
+      {detail && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+          <Badge variant="neutral">{meme.scope_label}</Badge>
+          {meme.category && <span className="text-stone-500">{meme.category}</span>}
+          {meme.country && <span className="text-stone-500">· {meme.country}</span>}
+          {meme.tags.map((t) => <TagChip key={t.id} tag={t} />)}
+        </div>
+      )}
 
       <dl className="mt-3 space-y-1 text-sm">
         <div className="flex flex-wrap gap-x-2">
@@ -403,7 +426,7 @@ export function MemeCard({
             </>
           )}
         </div>
-        {meme.authors.length > 0 && (
+        {detail && meme.authors.length > 0 && (
           <div className="flex flex-wrap gap-x-2">
             <dt className="text-stone-500">{meme.status === "published" ? "Authors" : "Approved by"}</dt>
             <dd className="flex flex-wrap gap-x-3">
@@ -418,10 +441,6 @@ export function MemeCard({
             </dd>
           </div>
         )}
-        <div className="flex flex-wrap gap-x-2 text-xs text-stone-500">
-          <ThumbsUp className="h-3.5 w-3.5" /> {meme.votes.useful} useful
-          <ThumbsDown className="h-3.5 w-3.5" /> {meme.votes.not_useful} not useful
-        </div>
       </dl>
 
       {meme.entry && (
@@ -431,7 +450,7 @@ export function MemeCard({
         </p>
       )}
 
-      {meme.similar_entries.length > 0 && (
+      {detail && meme.similar_entries.length > 0 && (
         <p className="mt-2 text-xs text-stone-600">
           Similar entries:{" "}
           {meme.similar_entries.map((s, i) => (
@@ -443,7 +462,7 @@ export function MemeCard({
         </p>
       )}
 
-      {/* Decisions */}
+      {/* The user's own decision */}
       {isYoursSuggestion && mine && (
         <div className="mt-3 rounded-lg bg-stone-50 p-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
@@ -461,7 +480,9 @@ export function MemeCard({
           )}
         </div>
       )}
-      {others.length > 0 && (
+
+      {/* The other candidates and their decisions are part of the details */}
+      {detail && others.length > 0 && (
         <div className="mt-3">
           <div className="text-xs font-medium uppercase tracking-wide text-stone-500">
             {isYoursSuggestion ? "Other candidates" : "Candidates"}
@@ -471,27 +492,20 @@ export function MemeCard({
       )}
 
       {item.type === "coauthor_request" && (
-        <div className="mt-3 rounded-lg bg-indigo-50 p-3 text-sm ring-1 ring-indigo-600/10">
-          <div>
-            <Person p={item.request.requester} /> asks to be a co-author, as{" "}
-            <b>{basisLabel(item.request.basis)}</b>
-            {item.request.basis === "relayed" && item.request.source ? ` (source: ${item.request.source})` : ""}.
-          </div>
-          {item.request.note && <p className="mt-1 text-stone-700">“{item.request.note}”</p>}
-          <p className="mt-1 text-xs text-stone-600">
-            Evidence:{" "}
-            {item.request.evidence_quote
-              ? `“${item.request.evidence_quote.text}” (${item.request.evidence_quote.at})`
-              : item.request.evidence || "none given"}
-          </p>
-          {item.request.status !== "pending" && (
-            <p className="mt-2 text-xs font-medium text-stone-700">
-              {item.request.status === "accepted" ? "Accepted" : "Declined"} by{" "}
-              {item.request.decided_by && <Person p={item.request.decided_by} />}
-              {item.request.decided_at && ` · ${fmtDate(item.request.decided_at)}`}
-              {item.request.decision_reason && ` · “${item.request.decision_reason}”`}
-            </p>
-          )}
+        <RequestBox request={item.request} />
+      )}
+      {detail && item.type !== "coauthor_request" && meme.pending_requests.length > 0 && (
+        <div className="mt-3 space-y-2">
+          <div className="text-xs font-medium uppercase tracking-wide text-stone-500">Co-author requests</div>
+          {meme.pending_requests.map((r) => (
+            <div key={r.id}>
+              <RequestBox request={r} />
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" onClick={() => setDialog({ kind: "accept", request: r })}>Accept</Button>
+                <Button size="sm" variant="secondary" onClick={() => setDialog({ kind: "decline", request: r })}>Decline</Button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -534,31 +548,6 @@ export function MemeCard({
             <Button size="sm" variant="secondary" onClick={() => setDialog({ kind: "decline", request: item.request })}>Decline</Button>
           </>
         )}
-        {item.type !== "coauthor_request" && !isYoursSuggestion && !meme.is_candidate && meme.votes.blocked_reason === null && (
-          <span className="flex items-center gap-1.5">
-            <Button size="sm" variant={meme.votes.my_vote === true ? "primary" : "secondary"} disabled={busy}
-              onClick={() => act(() => api.information.vote(meme.id, true))}>
-              <ThumbsUp className="h-3.5 w-3.5" /> Useful
-            </Button>
-            <Button size="sm" variant={meme.votes.my_vote === false ? "primary" : "secondary"} disabled={busy}
-              onClick={() => act(() => api.information.vote(meme.id, false))}>
-              <ThumbsDown className="h-3.5 w-3.5" /> Not useful
-            </Button>
-            {meme.votes.my_vote !== null && (
-              <Button size="sm" variant="ghost" disabled={busy} onClick={() => act(() => api.information.withdrawVote(meme.id))}>
-                Withdraw vote
-              </Button>
-            )}
-          </span>
-        )}
-        {item.type !== "coauthor_request" && meme.is_candidate && !isYoursSuggestion && mine?.state === "declined" && meme.votes.blocked_reason === null && (
-          <span className="flex items-center gap-1.5">
-            <Button size="sm" variant={meme.votes.my_vote === true ? "primary" : "secondary"} disabled={busy}
-              onClick={() => act(() => api.information.vote(meme.id, true))}>Useful</Button>
-            <Button size="sm" variant={meme.votes.my_vote === false ? "primary" : "secondary"} disabled={busy}
-              onClick={() => act(() => api.information.vote(meme.id, false))}>Not useful</Button>
-          </span>
-        )}
         {requestable && item.type !== "coauthor_request" && (
           <span title={meme.request_blocked_reason ?? undefined}>
             <Button size="sm" variant="secondary" disabled={!!meme.request_blocked_reason} onClick={() => setDialog({ kind: "coauthor" })}>
@@ -566,24 +555,18 @@ export function MemeCard({
             </Button>
           </span>
         )}
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-stone-600 hover:text-stone-900"
-        >
-          {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          {open ? "Hide quotes and history" : "Show quotes and history"}
-        </button>
+        {!detail && (
+          <Link to={detailPath} className="ml-auto text-xs font-medium text-stone-600 hover:text-stone-900 hover:underline">
+            Details
+          </Link>
+        )}
       </div>
       {requestable && meme.request_blocked_reason && item.type !== "coauthor_request" && (
         <p className="mt-1 text-xs text-stone-500">{meme.request_blocked_reason}</p>
       )}
-      {item.type !== "coauthor_request" && !isYoursSuggestion && meme.votes.blocked_reason && meme.status !== "published" && meme.status !== "declined" && (
-        <p className="mt-1 text-xs text-stone-500">{meme.votes.blocked_reason}</p>
-      )}
 
-      {open && (
-        <div className="mt-4 grid gap-5 border-t border-stone-100 pt-4 md:grid-cols-2">
+      {detail && (
+        <div className="mt-5 grid gap-5 border-t border-stone-100 pt-4 md:grid-cols-2">
           <Quotes meme={meme} />
           <History suggestions={meme.suggestions} />
         </div>
@@ -594,6 +577,29 @@ export function MemeCard({
       {dialog?.kind === "coauthor" && <CoauthorDialog meme={meme} onClose={() => setDialog(null)} onDone={done} />}
       {(dialog?.kind === "accept" || dialog?.kind === "decline") && (
         <DecideRequestDialog request={dialog.request} accept={dialog.kind === "accept"} onClose={() => setDialog(null)} onDone={done} />
+      )}
+    </div>
+  )
+}
+
+function RequestBox({ request }: { request: CoauthorRequestOut }) {
+  return (
+    <div className="mt-3 rounded-lg bg-indigo-50 p-3 text-sm ring-1 ring-indigo-600/10">
+      <div>
+        <Person p={request.requester} /> asks to be a co-author, as <b>{basisLabel(request.basis)}</b>
+        {request.basis === "relayed" && request.source ? ` (source: ${request.source})` : ""}.
+      </div>
+      {request.note && <p className="mt-1 text-stone-700">“{request.note}”</p>}
+      <p className="mt-1 text-xs text-stone-600">
+        Evidence:{" "}
+        {request.evidence_quote ? `“${request.evidence_quote.text}” (${request.evidence_quote.at})` : request.evidence || "none given"}
+      </p>
+      {request.status !== "pending" && (
+        <p className="mt-2 text-xs font-medium text-stone-700">
+          {request.status === "accepted" ? "Accepted" : "Declined"} by {request.decided_by && <Person p={request.decided_by} />}
+          {request.decided_at && ` · ${fmtDate(request.decided_at)}`}
+          {request.decision_reason && ` · “${request.decision_reason}”`}
+        </p>
       )}
     </div>
   )

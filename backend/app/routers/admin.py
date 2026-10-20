@@ -47,7 +47,6 @@ def _user_out(u: User) -> dict:
 # Ranges of the AI parser's agent settings (BR-M4, BR-M6, BR-M7)
 SETTING_RANGES = {
     "parser_confidence_threshold": (0.0, 1.0),
-    "parser_useful_vote_threshold": (1, 1000),
     "parser_raw_retention_days": (1, 3650),
 }
 

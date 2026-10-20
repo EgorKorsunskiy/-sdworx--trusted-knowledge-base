@@ -9,7 +9,7 @@ Demo data loaded by `app/seeds` on startup. Seeding runs only on an empty databa
 | `users.json` | `email`, `display_name`, `department`, `title`, `country`, `roles`, optional `expert_departments` | — |
 | `projects.json` | Internal projects: `name`, `description`, `status` (`active` / `completed`), `lead`, `members` (`user`, `role`, `start_date`, optional `end_date`) | `lead` / `members[].user` → user `email` |
 | `companies.json` | Client companies: `name`, `country`, `client_projects` (names; a client-project name never contains the client's name) | — |
-| `settings.json` | `key`, `value`, `value_type`, `description`; includes the AI parser's agent settings (`parser_confidence_threshold`, `parser_useful_vote_threshold`, `parser_raw_retention_days`) | — |
+| `settings.json` | `key`, `value`, `value_type`, `description`; includes the AI parser's agent settings (`parser_confidence_threshold`, `parser_raw_retention_days`) | — |
 | `entries.json` | `public_id`, `scope`, `department`, `country`, `category`, `author`, optional `team`, `tags`, `versions` | `category` → category `name`, `author` / `edited_by` / `verifier` → user `email`, `team` → team `name` |
 | `history_demo.json` | Entries in the `entries.json` format, without `public_id` (generated), for the change log demo | as `entries.json` |
 

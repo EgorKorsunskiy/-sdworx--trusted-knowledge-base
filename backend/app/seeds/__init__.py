@@ -235,6 +235,8 @@ def seed_settings() -> None:
     This includes the token lifetimes (access_token_minutes, refresh_token_hours) Admins can change."""
     Base.metadata.create_all(bind=engine)
     with Session(engine) as db:
+        # The AI parser has no usefulness votes any more: drop their threshold from older databases
+        db.query(SystemSetting).filter(SystemSetting.key == "parser_useful_vote_threshold").delete()
         existing = {s.key for s in db.query(SystemSetting).all()}
         for data in _load("settings"):
             if data["key"] not in existing:

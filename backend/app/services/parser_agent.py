@@ -35,7 +35,6 @@ SCOPES = {"universal", "eu", "country", "company", "client_project"}
 
 DEFAULTS = {
     "parser_confidence_threshold": 0.6,
-    "parser_useful_vote_threshold": 3,
     "parser_raw_retention_days": 30,
 }
 

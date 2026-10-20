@@ -485,7 +485,6 @@ export type Meme = {
   }[]
   suggestions: MemeSuggestion[]
   my_suggestion_id: number | null
-  votes: { useful: number; not_useful: number; my_vote: boolean | null; blocked_reason: string | null }
   entry: { public_id: string; status: string } | null
   authors: { user: MemePerson; basis: "responsible" | "relayed"; source: string | null; is_me: boolean }[]
   is_author: boolean
@@ -493,6 +492,7 @@ export type Meme = {
   can_request_coauthorship: boolean
   request_blocked_reason: string | null
   my_request: CoauthorRequestOut | null
+  pending_requests: CoauthorRequestOut[]
 }
 export type OverviewItem =
   | { type: "suggestion"; id: number; meme: Meme }
@@ -623,9 +623,6 @@ export const api = {
     reopen: (id: number) => fetchJson(`/information/suggestions/${id}/reopen`, { method: "POST" }),
     withdraw: (id: number) => fetchJson(`/information/suggestions/${id}/withdraw`, { method: "POST" }),
     prefill: (id: number) => fetchJson<SuggestionPrefill>(`/information/suggestions/${id}/prefill`),
-    vote: (memeId: number, useful: boolean) =>
-      fetchJson<Meme>(`/information/memes/${memeId}/vote`, jsonBody("PUT", { useful })),
-    withdrawVote: (memeId: number) => fetchJson<Meme>(`/information/memes/${memeId}/vote`, { method: "DELETE" }),
     requestCoauthorship: (
       memeId: number,
       body: { basis: "responsible" | "relayed"; source?: string; note?: string; evidence?: string },

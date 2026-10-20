@@ -22,12 +22,10 @@ from app.models import (
     SuggestionEvent,
     SuggestionState,
     UsageVote,
-    UsefulnessVote,
     User,
     Verification,
 )
 from app.services import contacts as contact_service
-from app.services.parser_agent import setting
 from app.services.scopes import scope_label
 
 OPEN_STATES = (SuggestionState.PENDING.value, SuggestionState.POSTPONED.value)
@@ -225,61 +223,6 @@ def close_open_suggestions(db: Session, meme: Meme) -> None:
             )
 
 
-# --- usefulness votes (FR-MV1 to FR-MV5) ------------------------------------------------------------------------------
-
-
-def vote_blocker(meme: Meme, user: User) -> tuple[str, int] | None:
-    """Why this user cannot vote now (message, HTTP status), or None."""
-    if meme.status in (MemeStatus.PUBLISHED.value, MemeStatus.DECLINED.value):
-        return "Voting is closed once a meme is published or declined", 409
-    mine = next((s for s in meme.suggestions if s.user_id == user.id), None)
-    if mine is not None and mine.state != SuggestionState.DECLINED.value:
-        return "Candidates can vote only after rejecting their own suggestion", 403
-    return None
-
-
-def set_vote(db: Session, meme: Meme, user: User, useful: bool | None) -> None:
-    """Cast, change (a second vote replaces the first) or withdraw (useful=None) a usefulness vote."""
-    blocked = vote_blocker(meme, user)
-    if blocked:
-        raise ParserError(*blocked)
-    row = db.query(UsefulnessVote).filter_by(meme_id=meme.id, user_id=user.id).first()
-    if useful is None:
-        if row is not None:
-            db.delete(row)
-    elif row is None:
-        db.add(UsefulnessVote(meme_id=meme.id, user_id=user.id, useful=useful))
-    else:
-        row.useful = useful
-    db.flush()
-    db.refresh(meme)
-    _maybe_nudge(db, meme)
-
-
-def vote_counts(meme: Meme) -> dict:
-    return {
-        "useful": sum(1 for v in meme.votes if v.useful),
-        "not_useful": sum(1 for v in meme.votes if not v.useful),
-    }
-
-
-def _maybe_nudge(db: Session, meme: Meme) -> None:
-    """A New meme with enough useful votes nudges its pending candidates; postponed ones are not nudged (FR-MO19)."""
-    if meme.status != MemeStatus.NEW.value or meme.nudged_at is not None:
-        return
-    useful = vote_counts(meme)["useful"]
-    if useful < setting(db, "parser_useful_vote_threshold"):
-        return
-    meme.nudged_at = datetime.utcnow()
-    for s in meme.suggestions:
-        if s.state == SuggestionState.PENDING.value:
-            notify(
-                db, s.user_id, "useful_threshold", "Colleagues find this useful",
-                f"“{meme.title}” was voted useful by {useful} colleagues. Please answer your suggestion.",
-                f"/information?tab=yours&section=to_decide&suggestion={s.id}",
-            )
-
-
 # --- co-authorship eligibility (FR-MS19, BR-M2) -------------------------------------------------------------------------
 
 
@@ -378,15 +321,13 @@ def request_out(r: CoauthorRequest, viewer: User) -> dict:
 
 
 def meme_out(db: Session, meme: Meme, viewer: User) -> dict:
-    """A meme as a participant sees it: statement, people, decisions with history, quotes with context, votes."""
+    """A meme as a participant sees it: statement, people, decisions with history, quotes with context."""
     src = meme.source
     mine = next((s for s in meme.suggestions if s.user_id == viewer.id), None)
-    my_vote = next((v for v in meme.votes if v.user_id == viewer.id), None)
     authors = meme_authors(db, meme)
     viewer_is_author = any(p["user"].id == viewer.id for p in authors)
     published = meme.status == MemeStatus.PUBLISHED.value
     my_request = next((r for r in meme.coauthor_requests if r.requester_id == viewer.id), None)
-    blocked_vote = vote_blocker(meme, viewer)
     return {
         "id": meme.id,
         "title": meme.title,
@@ -427,11 +368,6 @@ def meme_out(db: Session, meme: Meme, viewer: User) -> dict:
         ],
         "suggestions": [suggestion_out(s, viewer) for s in meme.suggestions],
         "my_suggestion_id": mine.id if mine else None,
-        "votes": {
-            **vote_counts(meme),
-            "my_vote": None if my_vote is None else my_vote.useful,
-            "blocked_reason": blocked_vote[0] if blocked_vote else None,
-        },
         "entry": (
             {"public_id": meme.entry.public_id, "status": meme.entry.versions[-1].status}
             if published and meme.entry else None
@@ -445,6 +381,11 @@ def meme_out(db: Session, meme: Meme, viewer: User) -> dict:
         "can_request_coauthorship": published and not viewer_is_author,
         "request_blocked_reason": request_blocker(db, meme, viewer) if published and not viewer_is_author else None,
         "my_request": request_out(my_request, viewer) if my_request else None,
+        "pending_requests": [
+            request_out(r, viewer)
+            for r in meme.coauthor_requests
+            if viewer_is_author and published and r.status == RequestStatus.PENDING.value and r.requester_id != viewer.id
+        ],
     }
 
 

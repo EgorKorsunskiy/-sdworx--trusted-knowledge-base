@@ -33,7 +33,6 @@ Authorship is also about **whom to ask**. The authors of an entry are the people
 - **Contacts** — accepted authors state their basis (Responsible, or Relayed with a source) as for any entry ([main spec](../../FUNCTIONAL_SPEC.md), FR-K); co-authors appear in the entry's Contacts block and on their profile's Responsibilities tab.
 - **Information overview page** — the page where every participant of a meeting or chat sees the suggestions from it, in two tabs: **Yours** (the user's own suggestions, to approve, reject or postpone, with a separate **Postponed** section) and **Others** (what the other users decided about their own suggestions, with the decision history). Both tabs are paginated and can be filtered by *Meetings* and *Group chats*.
 - **Decision history** — every decision on a suggestion is kept, append-only, and is visible to the other participants in their Others tab.
-- **Usefulness votes** — the other participants see the meme's current status and vote on its usefulness, in the Others tab.
 
 **Out of scope:** meeting recordings without a transcript (no speech-to-text), 1:1 private chats, e-mail.
 
@@ -55,7 +54,6 @@ Authorship is also about **whom to ask**. The authors of an entry are the people
 - **Scope** — as in the main spec (FR-E7, BR-11): universal, EU-wide, country, company or client project; agents suggest it per meme. A client project is not an internal Project of the main spec.
 - **Authorship basis, contacts, profile** — as defined in the main spec (section 3, FR-K, BR-10): every author is Responsible, or Relayed with a source; authors are listed as contacts on the entry and on their profile's Responsibilities tab.
 - **Quote** — an exact source fragment, with a timestamp (meeting) or message reference (chat). The statement and every confirmation each have their own quote.
-- **Usefulness vote** — a participant's judgement of whether a colleague's meme is worth keeping: *useful* or *not useful*. It is separate from the usage-record votes on entries (FR-P in the main spec).
 - **Published meme** — a meme an author added to the repository. It is linked to the resulting entry's public ID.
 
 ## 3. Actors and permissions
@@ -73,8 +71,7 @@ Authorship is also about **whom to ask**. The authors of an entry are the people
 | Request co-authorship of a published meme | If not an author | Yes | No (suggest a change to the entry instead) | No |
 | Decide on a co-authorship request | If an author | No | No | No |
 | Set or change own authorship basis and source | Own, as an author | No | No | No |
-| Vote on usefulness | Only after rejecting | Yes | No | No |
-| See status, candidates' decisions and vote counts | Yes | Yes | No | No |
+| See status and candidates' decisions | Yes | Yes | No | No |
 | See the published entry | Yes | Yes | Yes (normal entry) | Yes (normal entry) |
 | Configure agents (thresholds, retention) | No | No | No | Yes |
 
@@ -95,7 +92,6 @@ flowchart LR
     E --> V[Approval tab<br/>normal verification]
     R -->|every decision| H[Decision history]
     H --> O[Information overview · Others<br/>decisions visible to participants]
-    M --> U[Usefulness votes<br/>other participants, Others tab]
 ```
 
 ### Meme lifecycle
@@ -162,7 +158,7 @@ stateDiagram-v2
     Declined --> [*]
 ```
 
-Usefulness voting is open while a meme is **New** or **Preparing**. On publishing or decline the counts freeze and stay visible. After publishing, colleagues give feedback through the entry's usage records.
+There are no likes or dislikes on memes. After publishing, colleagues give feedback through the entry's usage records.
 
 ## 5. Functional requirements
 
@@ -205,7 +201,7 @@ The AI parser as a whole is Phase 2 of the main spec. Within it, Phase marks wha
 | FR-MC3 | The agent reconstructs threads and reply chains before extraction; information spread over several messages becomes one meme. | MVP |
 | FR-MC4 | In question–answer exchanges, the person who gave the answer is the speaker; the question alone is never a meme. | MVP |
 | FR-MC5 | When a later message in the chat contradicts or updates an earlier statement, the agent keeps only the latest one and quotes both. | MVP |
-| FR-MC6 | In chats, an explicit reply confirming a statement counts as a confirmation. Reactions (e.g. 👍) may raise the confidence score but never count as confirmations or usefulness votes. | MVP |
+| FR-MC6 | In chats, an explicit reply confirming a statement counts as a confirmation. Reactions (e.g. 👍) may raise the confidence score but never count as confirmations. | MVP |
 | FR-MC7 | Chats are read incrementally from Microsoft Graph; only new messages since the last run are analyzed, and existing memes are updated rather than duplicated. | Phase 2 |
 
 ### Authorship
@@ -230,7 +226,7 @@ The AI parser as a whole is Phase 2 of the main spec. Within it, Phase marks wha
 | FR-MO16 | The basis and source are prefilled from the agent's hint when the conversation makes them clear (e.g. "according to the legal circular…", "I read in the newsletter…", "our team handles these"); the author always confirms or changes them. | MVP |
 | FR-MO17 | An author can change their basis and source later, as for any entry (FR-K2 and FR-K10 of the main spec). | MVP |
 | FR-MO18 | **Postpone.** Instead of answering, a candidate can postpone their suggestion. A postponed suggestion stays open: it moves to the **Postponed** section of the Yours tab and can be approved, rejected or moved back to To decide at any time until the meme is published. It counts as undecided (FR-MO5), not as a rejection. | MVP |
-| FR-MO19 | Postponed suggestions are not nudged by the useful-vote threshold (FR-MV5); they are included in the weekly digest (FR-MN2). | MVP (no nudge), Phase 2 (digest) |
+| FR-MO19 | Postponed suggestions are included in the weekly digest (FR-MN2). | Phase 2 |
 | FR-MO20 | **Decision history.** Every decision on a suggestion (approve with basis and source, reject with reason, postpone, move back, withdraw, closed by publication) is stored with date and time in the suggestion's append-only decision history. A later decision adds an entry; nothing is overwritten or deleted. | MVP |
 | FR-MO21 | A candidate can change their mind: Postponed → Approve, Reject or To decide; Approved → withdraw while the meme is still Preparing. A rejection is final for that suggestion; its history stays. | MVP |
 | FR-MO22 | **Every user has their own suggestions.** Only the owner can approve, reject, postpone, withdraw or reopen a suggestion; nobody can decide for someone else, not the uploader, a manager or an admin (BR-M2, BR-M9). | MVP |
@@ -244,7 +240,7 @@ The page shows the suggestions that bots extracted from the user's meetings and 
 | FR-MS1 | An **Information overview** page lists the suggestions of all sources the current user participated in. | MVP |
 | FR-MS2 | The page has two filters, **Meetings** and **Group chats**, which can be combined; with neither selected, both are shown. They apply to both tabs. | MVP |
 | FR-MS3 | The page has two tabs: **Yours** (the suggestions the current user owns as an author candidate, plus the co-author requests addressed to them as an author, FR-MS11) and **Others** (the other users' suggestions of the same sources with their decisions, FR-MS13). Together they show everything the user may see from their sources. | MVP |
-| FR-MS4 | Each item shows the statement, speaker, confirmers, source (title, type, date), meme status, the decision of the suggestion's owner and usefulness counts; it expands to show the quotes with a few lines of surrounding context and the decision history. | MVP |
+| FR-MS4 | In the list, each item is compact: the statement, speaker, confirmers, source (title, type, date), meme status, the user's own decision and the available actions. Tags, scope, category, the other candidates with their decisions, authors, similar entries, the quotes with a few lines of surrounding context and the decision history are not shown in the list; they are on the item's detail page (FR-MS17). | MVP |
 | FR-MS5 | Visibility is enforced server-side: only participants of a source can list or open its suggestions, decisions, history, quotes and context. | MVP |
 | FR-MS6 | A published meme shows the entry's public ID, current entry status badge and authors, with a link to the entry. | MVP |
 | FR-MS7 | Suggestions can additionally be filtered by one specific source and by status. | Phase 2 |
@@ -257,7 +253,7 @@ The page shows the suggestions that bots extracted from the user's meetings and 
 | FR-MS14 | **Decisions become visible to others.** Right after an owner decides, the decision and its history entry appear in the Others tab of every other participant of the source; the owner sees them in Yours → Decided or Postponed. Postponed decisions are visible too. | MVP |
 | FR-MS15 | A meme in which the user is a candidate appears in **Yours** with the user's own suggestion and in **Others** with the other candidates' suggestions; a meme with the user as the only candidate appears only in Yours, and a meme in which the user is not a candidate only in Others. | MVP |
 | FR-MS16 | The **Information overview** item in the main navigation shows the number of suggestions in Yours → To decide. | MVP |
-| FR-MS17 | Usefulness voting (FR-MV1) is available on Others items, once per meme however many owners it lists. | MVP |
+| FR-MS17 | **Detail page.** Clicking an item in either tab opens its detail page (`/information/memes/<id>`), with everything the list leaves out: scope and category, clickable tags (FR-MS8), speaker and confirmers, every candidate with their decision, reason, basis and decision history, authors and co-authors with their basis, similar entries, the quotes with their context, and the actions that apply (decide on one's own suggestion, add to repository, request co-authorship, and, for authors, accept or decline open co-author requests). The page is visible only to participants of the source (FR-MS5). | MVP |
 | FR-MS18 | **Co-author requests section (Yours).** It lists the open co-authorship requests (FR-MO10) for published memes of which the user is an author. Each shows the meme, the requester with their proposed basis and source, their note and their evidence (the agent-detected quote, or the timestamp or message they pointed to, FR-MO11), with **Accept** and **Decline** (optional reason). The first author to answer decides (FR-MO12): the request then leaves every other author's list and appears in their Decided history as "decided by <name>". The section's count is part of the navigation badge (FR-MS16). | MVP |
 | FR-MS19 | **Request co-authorship** is offered on published memes where the user is a participant but not an author: on Others items, on closed suggestions in Yours → Decided (and rejected ones), and on the entry page (FR-MS21). It opens a dialog with the authorship basis (Responsible, or Relayed with a source, FR-MO15), an optional note and the evidence (prefilled with the user's own quote if they were a candidate, otherwise a timestamp or message reference to point to). When the user is not eligible the action stays visible but disabled with the reason: an open request already exists, an earlier request was declined (FR-MO14), the user has a usage vote on the entry (it must be withdrawn first) or verified its current version (BR-M2). | MVP |
 | FR-MS20 | Items of a published meme show its authors and co-authors with their basis (Responsible or Relayed with source), each linking to the person's profile. Items of which the user is an author carry an **Author** badge. | MVP |
@@ -285,21 +281,11 @@ The page shows the suggestions that bots extracted from the user's meetings and 
 
 Contacts, the authorship basis and the profile's Responsibilities tab are defined in the main spec (FR-K1–K13, BR-10). For memes, every accepted author — including co-authors who joined after publication — is a contact of the entry with the basis they chose (FR-MO15), and the entry appears on their Responsibilities tab.
 
-### Usefulness votes
-
-| ID | Requirement | Phase |
-| --- | --- | --- |
-| FR-MV1 | In the **Others** tab, every participant who is not an author candidate of the meme — or who rejected their suggestion — can vote a New or Preparing meme *useful* or *not useful*. | MVP |
-| FR-MV2 | One vote per user per meme; the user can change or withdraw it while voting is open. | MVP |
-| FR-MV3 | Useful and not-useful counts are shown on the meme to all participants, including the candidates in **Yours**. | MVP |
-| FR-MV4 | Usefulness votes do not transfer to the entry's correct / incorrect counts and do not affect verification. | MVP |
-| FR-MV5 | When a New meme reaches the configurable number of useful votes, all pending candidates are nudged to answer their suggestion. Candidates who postponed are not nudged (FR-MO19). | MVP |
-
 ### Notifications
 
 | ID | Requirement | Phase |
 | --- | --- | --- |
-| FR-MN1 | In-app notifications for: memes ready after an import, suggestion received, a co-candidate approved or rejected their suggestion, useful-vote threshold reached, meme published (with or without you), co-authorship requested after publication, co-authorship request decided. Postponing is silent: it is visible in the Others tab only (FR-MS14). | MVP |
+| FR-MN1 | In-app notifications for: memes ready after an import, suggestion received, a co-candidate approved or rejected their suggestion, meme published (with or without you), co-authorship requested after publication, co-authorship request decided. Postponing is silent: it is visible in the Others tab only (FR-MS14). | MVP |
 | FR-MN2 | Weekly digest of suggestions still pending or postponed. | Phase 2 |
 
 ## 6. Agent contract
@@ -398,7 +384,7 @@ For the demo, sample sources go into `backend/mock_data/` next to the other mock
 
 - [ ] Only suggestions from sources the user participated in are listed, in either tab.
 - [ ] Opening a suggestion of a foreign source by URL or API returns not found.
-- [ ] Each item shows status, speaker, confirmers, source, the owner's decision and usefulness counts.
+- [ ] Each item in the list shows status, speaker, confirmers, source and the user's own decision; clicking it opens a detail page with tags, all candidates and decisions, quotes and history.
 - [ ] Both tabs are paginated with a total count; the tab, filters and page are in the URL.
 - [ ] A meme appears in Yours with the user's own suggestion and in Others with the other candidates' suggestions, never as the user's own suggestion in Others.
 - [ ] The navigation item shows the number of suggestions to decide.
@@ -430,7 +416,7 @@ For the demo, sample sources go into `backend/mock_data/` next to the other mock
 1. C approves, A's colleague rejects with a reason and a third candidate postpones, each on their own suggestion.
 2. A opens **Information overview → Others**. The meme shows the three owners, their decisions with dates and C's chosen basis.
 3. A expands the item and reads the decision history, including the reason for the rejection.
-4. B, who is not a candidate, sees the same item in Others and votes it useful.
+4. B, who is not a candidate, sees the same item in Others and can open its detail page.
 
 **Acceptance criteria**
 
@@ -459,20 +445,6 @@ For the demo, sample sources go into `backend/mock_data/` next to the other mock
 - [ ] The new entry starts Unverified with zero votes; its authors can neither vote on it nor verify it.
 - [ ] The entry's justification references the source, not the transcript text.
 
-### UC-M5 Vote on a colleague's meme
-
-**Actor:** Employee B (participant, not a candidate) · **Covers:** FR-MV1–MV5
-
-1. In **Information overview → Others**, B sees A's meme with status New.
-2. B votes *useful*; the count updates for all participants.
-3. When the useful-vote threshold is reached, pending candidates are nudged to answer.
-
-**Acceptance criteria**
-
-- [ ] A candidate who has not rejected their suggestion cannot vote on the meme (a postponed suggestion is not a rejection).
-- [ ] A second vote by the same user replaces the first instead of adding to it.
-- [ ] Voting is closed once the meme is Published or Declined.
-
 ### UC-M6 Decline authorship
 
 **Actors:** Employee C (confirmer), Employee A (speaker) · **Covers:** FR-MO2, FR-MO5, FR-MO6
@@ -484,7 +456,7 @@ For the demo, sample sources go into `backend/mock_data/` next to the other mock
 
 - [ ] C's decline does not change A's request.
 - [ ] Decline reasons are visible to the other candidates.
-- [ ] When every candidate has rejected, the meme can no longer be published or voted on.
+- [ ] When every candidate has rejected, the meme can no longer be published.
 - [ ] If one candidate postponed instead of rejecting, the meme stays New and can still be approved.
 
 ### UC-M7 Request co-authorship after publication
@@ -531,15 +503,9 @@ All thresholds below are configurable by Admins; the values given are PoC defaul
 ### BR-M3 Publishing
 
 - A meme never becomes an entry automatically; publishing is always an explicit action of an accepted author.
-- A published meme becomes a regular entry: it starts Unverified, goes through duplicate detection and verification, and earns no extra trust from its usefulness votes or from the number of authors.
+- A published meme becomes a regular entry: it starts Unverified, goes through duplicate detection and verification, and earns no extra trust from the number of authors.
 - Co-authors are contributors of the entry in the sense of the main spec: they earn reputation as contributors (BR-5), cannot vote on it (FR-P2), and cannot verify it. A verifier who confirmed a statement in a meeting must decline authorship to remain able to verify the entry.
 - A co-author who did not write the text appears in the Contacts block, on the contributor list (FR-H2) and on their Responsibilities tab, but owns no line of the text: line-level responsibility (BR-7 of the main spec) follows who wrote or edited it. The saving author owns the lines of the first version; co-authors own lines only after they edit them through a pull request.
-
-### BR-M4 Usefulness votes
-
-- One vote per participant per meme; no votes from candidates who have not rejected their suggestion.
-- Votes are open while the meme is New or Preparing; counts freeze afterwards.
-- Default nudge threshold: 3 useful votes.
 
 ### BR-M5 Sensitive data
 
@@ -579,8 +545,8 @@ All thresholds below are configurable by Admins; the values given are PoC defaul
 | Screen | Main content | Key actions | Use cases |
 | --- | --- | --- | --- |
 | Import source | Upload transcript or chat export, title, date, participant list | Upload, confirm speakers and participants | UC-M1, UC-M2 |
-| Information overview — tab **Yours** | The user's own suggestions and incoming co-author requests in four sections with counts: **To decide**, **Postponed**, **Decided**, **Co-author requests**; per item: statement, speaker, confirmers, source, meme status, other candidates' decisions, authors and co-authors with their basis, usefulness counts, similar entries, scope and clickable tags, decision history, an Author badge; filters Meetings / Group chats; paginated | **Approve** (choose Responsible or Relayed with source, then the prefilled Add entry form), **Reject** (optional reason), **Postpone**, move a postponed suggestion back to To decide, withdraw while Preparing, add to repository, **Request co-authorship** on closed or rejected suggestions of a published meme, **Accept / Decline** incoming co-author requests (with requester, basis, note and evidence), expand quotes and history | UC-M3, UC-M4, UC-M6, UC-M7, UC-M8 |
-| Information overview — tab **Others** | Memes of the user's sources with the decisions of the other owners (name, decision, date, reason or basis) and their expandable decision history; authors and co-authors of published memes with their basis; speaker, confirmers, status, usefulness counts, scope and clickable tags; filters Meetings / Group chats; paginated | Vote useful / not useful, change or withdraw vote, **Request co-authorship** of a published meme (dialog with basis, note and evidence; disabled with a reason when not eligible), expand quotes and history; no decision buttons | UC-M3, UC-M5, UC-M7, UC-M9 |
+| Information overview — tab **Yours** | The user's own suggestions and incoming co-author requests in four sections with counts: **To decide**, **Postponed**, **Decided**, **Co-author requests**; per item in the list: statement, speaker, confirmers, source, meme status, the user's own decision, an Author badge; on the item's detail page: other candidates' decisions, authors and co-authors with their basis, similar entries, scope and clickable tags, quotes and decision history; filters Meetings / Group chats; paginated | **Approve** (choose Responsible or Relayed with source, then the prefilled Add entry form), **Reject** (optional reason), **Postpone**, move a postponed suggestion back to To decide, withdraw while Preparing, add to repository, **Request co-authorship** on closed or rejected suggestions of a published meme, **Accept / Decline** incoming co-author requests (with requester, basis, note and evidence), open the detail page | UC-M3, UC-M4, UC-M6, UC-M7, UC-M8 |
+| Information overview — tab **Others** | Memes of the user's sources for which other owners have suggestions; per item in the list: statement, speaker, confirmers, source, status; on the item's detail page: the decisions of the other owners (name, decision, date, reason or basis) with their decision history, authors and co-authors of published memes with their basis, scope and clickable tags, quotes; filters Meetings / Group chats; paginated | **Request co-authorship** of a published meme (dialog with basis, note and evidence; disabled with a reason when not eligible), open the detail page; no decision buttons | UC-M3, UC-M7, UC-M9 |
 | Add entry form (existing) | Prefilled from the meme, plus candidates with their decisions and the approved authors who will be recorded as co-authors; "already published" message with a link when another author saved first | Edit, save, create PR instead (also for the same information from another source, FR-MP11) | UC-M4, UC-M8 |
 | Entry page (existing) | Origin line ("From a meeting / group chat, date"); co-authors in the Contacts block (main spec FR-K3); a notice for authors with open co-author requests | **Request co-authorship** (participants of the source only; others get Suggest a change) | UC-M4, UC-M7 |
 
@@ -592,14 +558,13 @@ An **Information overview** item is added to the main navigation next to Search,
 | Suggestion received | Each candidate (speaker and confirmers), in their own Yours tab | In-app | Yours → To decide, on that suggestion |
 | A candidate approved or rejected their suggestion | The other candidates (everyone else sees it in the Others tab) | In-app | Others, on that meme, history expanded |
 | A candidate postponed their suggestion | Nobody is notified; it is visible in the Others tab of the other participants | — | — |
-| Useful-vote threshold reached | Pending candidates | In-app | Yours → To decide, on that suggestion |
-| Meme published | Authors, candidates whose request was closed, participants who voted on it | In-app | The new entry; for a closed suggestion Yours → Decided, with Request co-authorship |
+| Meme published | Authors, candidates whose request was closed | In-app | The new entry; for a closed suggestion Yours → Decided, with Request co-authorship |
 | Co-authorship requested after publication | All current authors | In-app | Yours → Co-author requests, on that request |
 | Co-authorship request accepted or declined | Requester | In-app | The entry (if accepted) or the item in Others (if declined) |
 
 ## 10. Phasing and open questions
 
-**Parser MVP:** manual upload of a meeting transcript and a group chat export; both agents with the shared output format, including confirmations; a personal suggestion per candidate with Approve / Reject / Postpone and an append-only decision history; Information overview page with the **Yours** tab (To decide, Postponed, Decided, Co-author requests) and the **Others** tab (other owners' decisions and history), pagination and the Meetings / Group chats filters; server-side participant visibility; publishing through the prefilled Add entry form with all approving authors; co-authorship requests after publication, made from the overview or the entry page and decided by the authors in Co-author requests; authorship basis chosen on approving (contacts and profiles as in the main spec); usefulness votes; scope and tags on memes, with tag links to Search; sensitive-data flag; in-app notifications.
+**Parser MVP:** manual upload of a meeting transcript and a group chat export; both agents with the shared output format, including confirmations; a personal suggestion per candidate with Approve / Reject / Postpone and an append-only decision history; Information overview page with the **Yours** tab (To decide, Postponed, Decided, Co-author requests) and the **Others** tab (other owners' decisions and history), pagination and the Meetings / Group chats filters; server-side participant visibility; publishing through the prefilled Add entry form with all approving authors; co-authorship requests after publication, made from the overview or the entry page and decided by the authors in Co-author requests; authorship basis chosen on approving (contacts and profiles as in the main spec); a detail page per item; scope and tags on memes, with tag links to Search; sensitive-data flag; in-app notifications.
 
 **Phase 2:** Microsoft Graph integration (automatic transcripts, incremental chat reading); replacing wrongly detected candidates; embedding-based similarity; source, status and tag filters; weekly digest.
 
@@ -613,7 +578,6 @@ An **Information overview** item is added to the main navigation next to Search,
 - [ ] Should co-authorship requests after publication have a time limit (e.g. until the entry gets its next version)?
 - [ ] Can a co-author leave an entry after publication, and does that need anyone's approval?
 - [ ] Should people who join a chat later see memes from before they joined?
-- [ ] Should a high useful-vote count influence the entry's search ranking after publishing, or stay provenance only?
 - [ ] What happens to pending and postponed suggestions when a candidate leaves the company?
 - [ ] Transcripts in Dutch or French: keep memes in the source language, or translate (FR-E6 of the main spec)?
 - [ ] Which model and hosting the agents use, given that payroll conversations contain personal data (technical specification).

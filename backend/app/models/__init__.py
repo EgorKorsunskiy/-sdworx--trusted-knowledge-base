@@ -528,6 +528,5 @@ from app.models.parser import (  # noqa: E402,F401
     Suggestion,
     SuggestionEvent,
     SuggestionState,
-    UsefulnessVote,
     meme_tags,
 )

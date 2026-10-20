@@ -60,12 +60,6 @@
     "description": "AI parser: memes below this confidence are dropped"
   },
   {
-    "key": "parser_useful_vote_threshold",
-    "value": "3",
-    "value_type": "int",
-    "description": "AI parser: useful votes after which pending candidates are nudged"
-  },
-  {
     "key": "parser_raw_retention_days",
     "value": "30",
     "value_type": "int",

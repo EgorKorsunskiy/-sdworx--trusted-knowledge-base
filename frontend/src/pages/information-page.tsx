@@ -26,7 +26,7 @@ const EMPTY: Record<OverviewSection, string> = {
 /**
  * Information overview (AI parser): what the bots extracted from the user's meetings and group chats.
  * Yours: the user's own suggestions (approve, reject, postpone) and co-author requests. Others: what the other
- * participants decided, with usefulness voting. Tab, section, filters and page live in the URL (FR-MS10).
+ * participants decided about their own suggestions. Click an item for the details. Tab, section, filters and page live in the URL (FR-MS10).
  */
 export function InformationPage() {
   const [params, setParams] = useSearchParams()
@@ -190,8 +190,8 @@ export function InformationPage() {
       )}
       {tab === "others" && (
         <p className="mt-4 text-sm text-stone-500">
-          What the other participants of your meetings and chats decided about their own suggestions. You can read and vote
-          here; people decide only on their own suggestions.
+          What the other participants of your meetings and chats decided about their own suggestions. Open an item to see who decided what.
+          People decide only on their own suggestions.
         </p>
       )}
 

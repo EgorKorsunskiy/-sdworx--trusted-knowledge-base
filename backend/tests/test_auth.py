@@ -7,8 +7,6 @@ from urllib.parse import parse_qs, urlparse
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
-from fastapi.routing import APIRoute
-
 from app.config import settings
 from app.main import app
 from app.services import idp
@@ -51,15 +49,16 @@ PUBLIC_PATHS = {"/", "/health", "/auth/config", "/auth/token", "/auth/refresh", 
 
 def test_every_non_public_endpoint_requires_a_token(client):
     checked = 0
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
+    # The OpenAPI schema lists every endpoint however the framework groups its routers
+    for route_path, operations in app.openapi()["paths"].items():
+        if route_path in PUBLIC_PATHS or route_path.startswith(PUBLIC_PREFIXES):
             continue
-        if route.path in PUBLIC_PATHS or route.path.startswith(PUBLIC_PREFIXES):
-            continue
-        path = re.sub(r"\{[^}]+\}", "1", route.path)
-        for method in route.methods - {"HEAD", "OPTIONS"}:
-            r = client.request(method, path, json={})
-            assert r.status_code == 401, f"{method} {route.path} answered {r.status_code} without a token"
+        path = re.sub(r"\{[^}]+\}", "1", route_path)
+        for method in operations:
+            if method.upper() in ("HEAD", "OPTIONS"):
+                continue
+            r = client.request(method.upper(), path, json={})
+            assert r.status_code == 401, f"{method.upper()} {route_path} answered {r.status_code} without a token"
             checked += 1
     assert checked > 30
 

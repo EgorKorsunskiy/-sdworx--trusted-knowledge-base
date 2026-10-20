@@ -202,7 +202,8 @@ def _entry_detail_out(
 
 def _reload(db: Session, entry_id: int) -> Entry:
     entry = db.query(Entry).filter(Entry.id == entry_id).options(*_entry_options()).first()
-    assert entry is not None
+    if entry is None:  # a real check: assert statements are skipped when Python runs in optimized mode
+        raise HTTPException(status_code=404, detail="Entry not found")
     return entry
 
 
@@ -222,7 +223,8 @@ def create_entry(
     user: User = Depends(get_current_user),
 ) -> EntryOut:
     author = load_user(db, user.id)
-    assert author is not None
+    if author is None:  # a real check: assert statements are skipped when Python runs in optimized mode
+        raise HTTPException(status_code=401, detail="Unknown user")
 
     title = body.title.strip()
     content = body.body.strip()

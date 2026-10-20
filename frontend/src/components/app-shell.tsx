@@ -61,10 +61,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Bell className="h-5 w-5" />
               {unread > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />}
             </Link>
-            <div className="flex items-center gap-2">
+            <Link to={`/people/${user.id}`} className="flex items-center gap-2 hover:text-stone-900">
               <User className="h-5 w-5 text-stone-400" />
               <span className="hidden sm:inline text-stone-600">{user.display_name}</span>
-            </div>
+            </Link>
             <Button variant="ghost" size="sm" onClick={() => logout().then(() => navigate("/login"))}>
               Log out
             </Button>

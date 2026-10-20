@@ -1,14 +1,18 @@
 import json
+from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
 from app.config import MOCK_DATA_DIR
 from app.database import Base, engine
+from app.services.public_id import make_public_id
 from app.models import (
     Category,
     Entry,
     EntryScope,
     EntryVersion,
+    Project,
+    ProjectMembership,
     RoleType,
     SystemSetting,
     Tag,
@@ -17,8 +21,11 @@ from app.models import (
     User,
     UserRole,
     VerifierDepartmentMap,
+    Verification,
     VersionStatus,
 )
+
+HISTORY_DEMO_TAG = "history-demo"
 
 
 def _load(name: str) -> list[dict]:
@@ -29,6 +36,73 @@ def _load(name: str) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _tag(db: Session, name: str) -> Tag:
+    tag = db.query(Tag).filter(Tag.name == name).first()
+    if tag is None:
+        tag = Tag(name=name)
+        db.add(tag)
+        db.flush()
+    return tag
+
+
+def _add_entry(db: Session, data: dict, users: dict[str, User], now: datetime) -> Entry:
+    """Create one entry from its mock_data form; see mock_data/README.md for the fields."""
+    author = users[data["author"]]
+    category = db.query(Category).filter(Category.name == data["category"]).one()
+    if data.get("team"):
+        team = db.query(Team).filter(Team.name == data["team"]).one()
+    else:
+        # Like a real submission, the entry belongs to the author's primary team
+        membership = db.query(TeamMembership).filter_by(user_id=author.id, is_primary=True).first()
+        team = membership.team if membership else None
+
+    def at(days_ago: int | None) -> datetime:
+        return now - timedelta(days=days_ago) if days_ago is not None else now
+
+    versions = data["versions"]
+    country = data.get("country")
+    entry = Entry(
+        public_id=data.get("public_id") or make_public_id(db, country, category.name),
+        scope=data.get("scope", EntryScope.COUNTRY.value),
+        department=data.get("department") or author.department or "General",
+        country=country,
+        category_id=category.id,
+        author_id=author.id,
+        team_id=team.id if team else None,
+        created_at=at(versions[0].get("created_days_ago")),
+        updated_at=at(versions[-1].get("created_days_ago")),
+    )
+    db.add(entry)
+    db.flush()
+
+    for name in data.get("tags", []):
+        entry.tags.append(_tag(db, name))
+
+    for number, v in enumerate(versions, start=1):
+        version = EntryVersion(
+            entry_id=entry.id,
+            version_number=number,
+            title=v["title"],
+            body=v["body"],
+            justification=v.get("justification"),
+            status=v.get("status", VersionStatus.UNVERIFIED.value),
+            change_note=v.get("change_note"),
+            edited_by_id=users[v.get("edited_by", data["author"])].id,
+            created_at=at(v.get("created_days_ago")),
+        )
+        db.add(version)
+        db.flush()
+        for ver in v.get("verifications", []):
+            db.add(Verification(
+                version_id=version.id,
+                verifier_id=users[ver["verifier"]].id,
+                role=ver["role"],
+                action="verify",
+                created_at=at(ver.get("days_ago")),
+            ))
+    return entry
+
+
 def seed_all() -> None:
     Base.metadata.create_all(bind=engine)
 
@@ -37,82 +111,128 @@ def seed_all() -> None:
             print("Database already seeded.")
             return
 
-        categories: dict[str, Category] = {}
         for data in _load("categories"):
-            category = Category(**data)
-            db.add(category)
-            categories[category.name] = category
+            db.add(Category(**data))
 
-        teams: dict[str, Team] = {}
-        for data in _load("teams"):
-            team = Team(**data)
-            db.add(team)
-            teams[team.name] = team
+        teams = _load("teams")
+        for data in teams:
+            db.add(Team(name=data["name"], department=data["department"], description=data.get("description")))
         db.flush()
 
         # Users are keyed by email; insertion order defines their ids
         users: dict[str, User] = {}
-        user_teams: dict[str, str] = {}
         for data in _load("users"):
             u = User(
                 email=data["email"],
                 display_name=data["display_name"],
                 department=data.get("department"),
                 title=data.get("title"),
+                country=data.get("country"),
             )
             db.add(u)
             db.flush()
             users[u.email] = u
             for role in data.get("roles", [RoleType.EMPLOYEE.value]):
                 db.add(UserRole(user_id=u.id, role=role))
-            if data.get("team"):
-                user_teams[u.email] = data["team"]
-                db.add(TeamMembership(user_id=u.id, team_id=teams[data["team"]].id, is_primary=True))
             # Senior experts: departments they may verify
             for department in data.get("expert_departments", []):
                 db.add(VerifierDepartmentMap(user_id=u.id, department=department))
 
-        db.add_all(SystemSetting(**data) for data in _load("settings"))
-
-        tags: dict[str, Tag] = {}
-        entries = _load("entries")
-        for data in entries:
-            author = users[data["author"]]
-            # Like a real submission, the entry belongs to the author's team unless set explicitly
-            team_name = data.get("team") or user_teams.get(author.email)
-            entry = Entry(
-                public_id=data["public_id"],
-                scope=data.get("scope", EntryScope.COUNTRY.value),
-                department=data.get("department") or author.department or "General",
-                country=data.get("country"),
-                category_id=categories[data["category"]].id,
-                author_id=author.id,
-                team_id=teams[team_name].id if team_name else None,
-            )
-            db.add(entry)
-            db.flush()
-
-            for name in data.get("tags", []):
-                if name not in tags:
-                    tags[name] = Tag(name=name)
-                    db.add(tags[name])
-                    db.flush()
-                entry.tags.append(tags[name])
-
-            for number, v in enumerate(data["versions"], start=1):
-                db.add(EntryVersion(
-                    entry_id=entry.id,
-                    version_number=number,
-                    title=v["title"],
-                    body=v["body"],
-                    justification=v.get("justification"),
-                    status=v.get("status", VersionStatus.UNVERIFIED.value),
-                    change_note=v.get("change_note"),
-                    edited_by_id=users[v.get("edited_by", data["author"])].id,
+        for data in teams:
+            team = db.query(Team).filter(Team.name == data["name"]).one()
+            team.lead_user_id = users[data["lead"]].id if data.get("lead") else None
+            for m in data.get("members", []):
+                db.add(TeamMembership(
+                    user_id=users[m["user"]].id,
+                    team_id=team.id,
+                    is_primary=m.get("primary", False),
+                    role=m.get("role", "Member"),
                 ))
+        db.flush()
+
+        entries = _load("entries")
+        now = datetime.utcnow()
+        for data in entries:
+            _add_entry(db, data, users, now)
 
         db.commit()
         print(f"Seeded database from {MOCK_DATA_DIR} ({len(users)} users, {len(entries)} entries).")
+
+    seed_people()
+    seed_settings()
+
+
+def seed_settings() -> None:
+    """Add settings from settings.json that the database lacks (idempotent, also fills an already-seeded DB)."""
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        existing = {s.key for s in db.query(SystemSetting).all()}
+        for data in _load("settings"):
+            if data["key"] not in existing:
+                db.add(SystemSetting(**data))
+        db.commit()
+
+
+def seed_people() -> None:
+    """Internal projects and their members from projects.json (idempotent, also fills an already-seeded DB)."""
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        if db.query(Project).first():
+            return
+        projects = _load("projects")
+        emails = {p["lead"] for p in projects} | {m["user"] for p in projects for m in p["members"]}
+        users = {u.email: u for u in db.query(User).filter(User.email.in_(emails))}
+        if len(users) < len(emails):
+            return  # not the demo dataset
+
+        for data in projects:
+            project = Project(
+                name=data["name"],
+                description=data.get("description"),
+                status=data.get("status", "active"),
+                lead_user_id=users[data["lead"]].id,
+            )
+            db.add(project)
+            db.flush()
+            for m in data["members"]:
+                db.add(ProjectMembership(
+                    user_id=users[m["user"]].id,
+                    project_id=project.id,
+                    role=m.get("role", "Member"),
+                    start_date=date.fromisoformat(m["start_date"]),
+                    end_date=date.fromisoformat(m["end_date"]) if m.get("end_date") else None,
+                ))
+        db.commit()
+        print("Seeded projects.")
+
+
+def _insert_demo_entry(db: Session) -> str | None:
+    """Insert the multi-version entry from history_demo.json for the change log demo. Returns its public id."""
+    if db.query(Entry).join(Entry.tags).filter(Tag.name == HISTORY_DEMO_TAG).first():
+        return None
+    entries = _load("history_demo")
+    emails = {d["author"] for d in entries} | {
+        email
+        for d in entries
+        for v in d["versions"]
+        for email in [v.get("edited_by", d["author"]), *(x["verifier"] for x in v.get("verifications", []))]
+    }
+    users = {u.email: u for u in db.query(User).filter(User.email.in_(emails))}
+    if not entries or len(users) < len(emails):
+        return None  # not the demo dataset
+    now = datetime.utcnow()
+    public_ids = [_add_entry(db, data, users, now).public_id for data in entries]
+    db.commit()
+    return public_ids[0]
+
+
+def seed_history_demo() -> None:
+    """Demo entry with 3 versions for the change log / diff view (idempotent)."""
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        public_id = _insert_demo_entry(db)
+        if public_id:
+            print(f"Seeded history demo entry {public_id}.")
 
 
 if __name__ == "__main__":

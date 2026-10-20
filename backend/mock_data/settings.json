@@ -5,5 +5,7 @@
   {"key": "reputation_verified", "value": "10", "value_type": "int", "description": "Reputation for verified entry"},
   {"key": "reputation_vote", "value": "2", "value_type": "int", "description": "Reputation for correct vote"},
   {"key": "reputation_pr_merged", "value": "5", "value_type": "int", "description": "Reputation for merged PR"},
-  {"key": "reputation_cited", "value": "3", "value_type": "int", "description": "Reputation for citation"}
+  {"key": "reputation_cited", "value": "3", "value_type": "int", "description": "Reputation for citation"},
+  {"key": "access_token_minutes", "value": "15", "value_type": "int", "description": "Lifetime of an access token (JWT) in minutes"},
+  {"key": "refresh_token_hours", "value": "8", "value_type": "int", "description": "Lifetime of a refresh token in hours"}
 ]

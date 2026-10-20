@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Freelancer DMFA Automation",
+    "description": "Automate quarterly DMFA reporting for freelancers and contractors.",
+    "status": "active",
+    "lead": "team.lead@sdworx.example",
+    "members": [
+      { "user": "employee.a@sdworx.example", "role": "Contributor", "start_date": "2026-01-15" },
+      { "user": "employee.b@sdworx.example", "role": "Contributor", "start_date": "2026-03-01" },
+      { "user": "senior.expert@sdworx.example", "role": "SME", "start_date": "2026-01-15" },
+      { "user": "team.lead@sdworx.example", "role": "Project lead", "start_date": "2026-01-15" }
+    ]
+  },
+  {
+    "name": "Contractor Onboarding Revamp",
+    "description": "Redesign of the contractor onboarding process (finished).",
+    "status": "completed",
+    "lead": "manager@sdworx.example",
+    "members": [
+      { "user": "employee.a@sdworx.example", "role": "Contributor", "start_date": "2025-03-01", "end_date": "2025-09-30" },
+      { "user": "employee.c@sdworx.example", "role": "Contributor", "start_date": "2025-03-01", "end_date": "2025-09-30" },
+      { "user": "senior.expert@sdworx.example", "role": "SME", "start_date": "2025-03-01", "end_date": "2025-09-30" },
+      { "user": "manager@sdworx.example", "role": "Sponsor", "start_date": "2025-03-01", "end_date": "2025-09-30" }
+    ]
+  },
+  {
+    "name": "Quarterly Compliance Review",
+    "description": "Quarterly review of payroll compliance rules and knowledge base entries.",
+    "status": "active",
+    "lead": "senior.expert@sdworx.example",
+    "members": [
+      { "user": "senior.expert@sdworx.example", "role": "Lead", "start_date": "2026-04-01" },
+      { "user": "employee.b@sdworx.example", "role": "Contributor", "start_date": "2026-04-01" },
+      { "user": "employee.c@sdworx.example", "role": "Contributor", "start_date": "2026-04-01" }
+    ]
+  }
+]

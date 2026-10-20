@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
 from sqlalchemy import (
+    event,
     Boolean,
     Column,
     Date,
@@ -39,6 +40,11 @@ class VersionStatus(str, Enum):
     OUTDATED = "Stale"
 
 
+class ProjectStatus(str, Enum):
+    ACTIVE = "active"
+    COMPLETED = "completed"
+
+
 class PullRequestStatus(str, Enum):
     OPEN = "open"
     AUTHOR_APPROVED = "author_approved"
@@ -64,12 +70,16 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
     department: Mapped[str | None] = mapped_column(String(255), nullable=True)
     title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(8), default="BE")
     reputation: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     roles: Mapped[list["UserRole"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     memberships: Mapped[list["TeamMembership"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    project_memberships: Mapped[list["ProjectMembership"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
     notifications: Mapped[list["Notification"]] = relationship(
@@ -90,8 +100,10 @@ class Team(Base):
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     department: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    lead_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
+    lead: Mapped["User | None"] = relationship(foreign_keys=[lead_user_id])
     memberships: Mapped[list["TeamMembership"]] = relationship(
         back_populates="team", cascade="all, delete-orphan"
     )
@@ -106,10 +118,43 @@ class TeamMembership(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     team_id: Mapped[int] = mapped_column(ForeignKey("teams.id"), nullable=False)
     is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
+    role: Mapped[str] = mapped_column(String(64), default="Member", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="memberships")
     team: Mapped["Team"] = relationship(back_populates="memberships")
+
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default=ProjectStatus.ACTIVE.value)
+    lead_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    lead: Mapped["User | None"] = relationship(foreign_keys=[lead_user_id])
+    memberships: Mapped[list["ProjectMembership"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
+
+
+class ProjectMembership(Base):
+    __tablename__ = "project_memberships"
+    __table_args__ = (UniqueConstraint("user_id", "project_id", name="uq_user_project"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), nullable=False)
+    role: Mapped[str] = mapped_column(String(64), default="Member", nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False, default=date.today)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship(back_populates="project_memberships")
+    project: Mapped["Project"] = relationship(back_populates="memberships")
 
 
 class UserRole(Base):
@@ -169,6 +214,7 @@ class Entry(Base):
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True)
+    difference_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -199,6 +245,8 @@ class EntryVersion(Base):
     change_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     edited_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Set when this version was created by merging a pull request (iteration 13)
+    source_pr_id: Mapped[int | None] = mapped_column(ForeignKey("pull_requests.id"), nullable=True)
 
     entry: Mapped["Entry"] = relationship(back_populates="versions")
     edited_by: Mapped["User"] = relationship(back_populates="authored_versions", foreign_keys=[edited_by_id])
@@ -322,6 +370,39 @@ class SystemSetting(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+
+class RefreshToken(Base):
+    """Opaque refresh tokens, stored hashed. Rotated on every use; a reused token revokes its family."""
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    family_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    replaced_by_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class AuditLog(Base):
+    """Append-only: sign-in, refresh, sign-out and denied requests."""
+
+    __tablename__ = "audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    event: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+@event.listens_for(AuditLog, "before_update")
+@event.listens_for(AuditLog, "before_delete")
+def _audit_log_is_append_only(mapper, connection, target):
+    raise RuntimeError("audit_log is append-only")
 
 
 class Notification(Base):

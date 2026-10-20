@@ -1,11 +1,28 @@
 # Python / backend
 backend/.venv/
+backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
-backend/*.py[cod]
+backend/**/*.py[cod]
+backend/*.egg-info/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+backend/.coverage
+backend/htmlcov/
+
+# Local database (recreated and re-seeded on startup)
 backend/*.db
+backend/*.db-journal
+backend/*.db-wal
+backend/*.db-shm
 backend/*.sqlite3
+
+# Secrets and generated keys (JWT signing keys are created on first start)
 backend/.env
+backend/.env.*
+backend/.keys/
+backend/*.pem
 
 # Node / frontend
 frontend/node_modules/

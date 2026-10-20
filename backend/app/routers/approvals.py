@@ -63,6 +63,7 @@ def pending_approvals(
                     "department": v.entry.department,
                     "country": v.entry.country,
                     "author": user_to_out(v.entry.author),
+                    "difference_note": v.entry.difference_note,
                 },
             })
     return result

@@ -1,16 +1,47 @@
-const API_BASE = import.meta.env.VITE_API_URL || "/api"
-const TOKEN_KEY = "peerpoint_token"
+export const API_BASE = import.meta.env.VITE_API_URL || "/api"
+
+// The access token lives in memory only (never localStorage). The refresh token is an HttpOnly
+// cookie the browser sends to /auth/refresh; JavaScript never sees it.
+let accessToken: string | null = null
 
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  return accessToken
 }
 
 export function setToken(token: string | null) {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
+  accessToken = token
 }
 
-async function fetchJson<T = any>(path: string, options: RequestInit = {}): Promise<T> {
+export const SIGNED_OUT_EVENT = "peerpoint:signed-out"
+
+export type Session = { authenticated: boolean; user: User | null; token?: string | null }
+
+let refreshInFlight: Promise<Session | null> | null = null
+
+/** Trade the refresh cookie for a new access token. Concurrent callers share one request. */
+export function refreshSession(): Promise<Session | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/refresh`, { method: "POST", credentials: "include" })
+        if (!res.ok) {
+          accessToken = null
+          return null
+        }
+        const session: Session = await res.json()
+        accessToken = session.token ?? null
+        return session
+      } catch {
+        return null
+      } finally {
+        refreshInFlight = null
+      }
+    })()
+  }
+  return refreshInFlight
+}
+
+async function fetchJson<T = any>(path: string, options: RequestInit = {}, retried = false): Promise<T> {
   const headers = new Headers(options.headers)
   if (!headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json")
@@ -23,6 +54,11 @@ async function fetchJson<T = any>(path: string, options: RequestInit = {}): Prom
     headers,
     credentials: "include",
   })
+  if (res.status === 401 && !retried && !path.startsWith("/auth/")) {
+    // Access token expired: renew silently and retry once, otherwise send the user to sign in.
+    if (await refreshSession()) return fetchJson<T>(path, options, true)
+    window.dispatchEvent(new Event(SIGNED_OUT_EVENT))
+  }
   if (!res.ok) {
     let detail = res.statusText
     try {
@@ -43,6 +79,7 @@ export type User = {
   display_name: string
   department?: string | null
   title?: string | null
+  country?: string | null
   reputation: number
   is_active: boolean
   roles: { role: string; scope?: string | null }[]
@@ -91,22 +128,180 @@ export type Entry = {
   updated_at: string
   can_edit?: boolean
   who_to_ask?: PersonBrief[]
+  difference_note?: string | null
 }
 
+export type UserBrief = {
+  id: number
+  display_name: string
+  title?: string | null
+  department?: string | null
+  is_active: boolean
+}
+
+export type Profile = {
+  id: number
+  email: string
+  display_name: string
+  title?: string | null
+  department?: string | null
+  country?: string | null
+  is_active: boolean
+  reputation: number
+  roles: { role: string; scope?: string | null }[]
+  teams: { membership_id: number; id: number; name: string; department: string; role: string; is_primary: boolean }[]
+  projects: {
+    membership_id: number
+    id: number
+    name: string
+    status: string
+    role: string
+    start_date: string
+    end_date?: string | null
+    ended: boolean
+  }[]
+  entries: { public_id: string; title: string; status: string }[]
+}
+
+export type TeamDetail = {
+  id: number
+  name: string
+  department: string
+  description?: string | null
+  lead?: UserBrief | null
+  members: { membership_id: number; user: UserBrief; role: string; is_primary: boolean }[]
+}
+
+export type ProjectDetail = {
+  id: number
+  name: string
+  description?: string | null
+  status: string
+  lead?: UserBrief | null
+  members: {
+    membership_id: number
+    user: UserBrief
+    role: string
+    start_date: string
+    end_date?: string | null
+    ended: boolean
+  }[]
+}
+
+export type AuthorRef = { id: number; display_name: string; title?: string | null }
+
+export type DiffApprover = {
+  user: AuthorRef
+  role: string
+  action: string
+  created_at: string
+  source: "verification" | "pull_request"
+}
+
+export type DiffFragment = {
+  type: "equal" | "added" | "removed" | "edited"
+  old_text: string | null
+  new_text: string | null
+  author: AuthorRef | null
+  parts?: { op: "equal" | "delete" | "insert"; text: string }[] | null
+}
+
+export type FieldDiff = { old: string | null; new: string | null; changed: boolean }
+
+export type DiffSummary = { added: number; removed: number; edited: number; unchanged: number }
+
+export type EntryDiff = {
+  header: {
+    public_id: string
+    kind: "created" | "change" | "proposal"
+    from_version: number | null
+    to_version: number | null
+    version_id: number | null
+    author: AuthorRef
+    created_at: string
+    change_note: string | null
+    status: string | null
+    approvers: DiffApprover[]
+    pull_request_id: number | null
+  }
+  title: FieldDiff
+  justification: FieldDiff
+  body: DiffFragment[]
+  summary: DiffSummary
+  has_changes: boolean
+}
+
+export type HistoryItem = {
+  version_id: number
+  version_number: number
+  title: string
+  status: string
+  change_note: string | null
+  created_at: string
+  author: AuthorRef
+  is_current: boolean
+  verifier_role: string | null
+  approvers: DiffApprover[]
+  summary: DiffSummary
+}
+
+const jsonBody = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) })
+
+export type AuthConfig = {
+  demo_mode: boolean
+  idp: { client_id: string; authorize_url: string; scope: string }
+}
+
+export type SearchFacets = {
+  countries: string[]
+  departments: string[]
+  categories: string[]
+  statuses: { value: string; label: string }[]
+  scopes: { value: string; label: string }[]
+  verifier_roles: string[]
+  authors: { id: number; name: string }[]
+  teams: { id: number; name: string }[]
+  projects: { id: number; name: string }[]
+}
+
+// Query-string keys that can hold several values (OR within one filter).
+export const SEARCH_MULTI_KEYS = [
+  "country",
+  "department",
+  "category",
+  "status",
+  "scope",
+  "verifier_role",
+  "author",
+  "team",
+  "project",
+] as const
+export const SEARCH_DATE_KEYS = ["updated_from", "updated_to"] as const
+
 export const api = {
+  authConfig: () => fetchJson<AuthConfig>("/auth/config"),
+  // Demo mode only (404 otherwise).
   listUsers: () => fetchJson<User[]>("/auth/users"),
-  me: () => fetchJson<{ authenticated: boolean; user: User | null }>("/auth/me"),
   login: async (userId: number) => {
-    const data = await fetchJson<{ authenticated: boolean; user: User; token?: string }>(
-      "/auth/dev-login",
-      { method: "POST", body: JSON.stringify({ user_id: userId }) },
-    )
-    if (data.token) setToken(data.token)
+    const data = await fetchJson<Session>("/auth/dev-login", {
+      method: "POST",
+      body: JSON.stringify({ user_id: userId }),
+    })
+    setToken(data.token ?? null)
+    return data
+  },
+  // Last step of the OAuth2 authorization code flow.
+  exchangeCode: async (body: { code: string; code_verifier: string; redirect_uri: string }) => {
+    const data = await fetchJson<Session>("/auth/token", { method: "POST", body: JSON.stringify(body) })
+    setToken(data.token ?? null)
     return data
   },
   logout: async () => {
-    await fetchJson("/auth/logout", { method: "POST" })
-    setToken(null)
+    try {
+      await fetchJson("/auth/logout", { method: "POST" })
+    } finally {
+      setToken(null)
+    }
   },
   categories: () => fetchJson<Category[]>("/categories"),
   notifications: {
@@ -121,13 +316,45 @@ export const api = {
     mappings: () => fetchJson<any[]>("/admin/verifier-mappings"),
     addMapping: (userId: number, department: string) =>
       fetchJson(`/admin/verifier-mappings?user_id=${userId}&department=${encodeURIComponent(department)}`, { method: "POST" }),
+    createTeam: (body: { name: string; department: string; description?: string; lead_user_id?: number | null }) =>
+      fetchJson<TeamDetail>("/admin/teams", jsonBody("POST", body)),
+    updateTeam: (id: number, body: Record<string, unknown>) =>
+      fetchJson<TeamDetail>(`/admin/teams/${id}`, jsonBody("PATCH", body)),
+    createProject: (body: { name: string; description?: string; status?: string; lead_user_id?: number | null }) =>
+      fetchJson<ProjectDetail>("/admin/projects", jsonBody("POST", body)),
+    updateProject: (id: number, body: Record<string, unknown>) =>
+      fetchJson<ProjectDetail>(`/admin/projects/${id}`, jsonBody("PATCH", body)),
+    addTeamMember: (teamId: number, body: { user_id: number; role?: string; is_primary?: boolean }) =>
+      fetchJson<TeamDetail>(`/admin/teams/${teamId}/members`, jsonBody("POST", body)),
+    removeTeamMember: (membershipId: number) =>
+      fetchJson(`/admin/team-memberships/${membershipId}`, { method: "DELETE" }),
+    addProjectMember: (
+      projectId: number,
+      body: { user_id: number; role?: string; start_date?: string; end_date?: string | null },
+    ) => fetchJson<ProjectDetail>(`/admin/projects/${projectId}/members`, jsonBody("POST", body)),
+    updateProjectMember: (membershipId: number, body: { role?: string; end_date?: string | null }) =>
+      fetchJson<ProjectDetail>(`/admin/project-memberships/${membershipId}`, jsonBody("PATCH", body)),
+    removeProjectMember: (membershipId: number) =>
+      fetchJson(`/admin/project-memberships/${membershipId}`, { method: "DELETE" }),
   },
-  search: (q = "") => {
-    const params = new URLSearchParams()
-    if (q) params.set("q", q)
+  people: {
+    list: (q = "") => fetchJson<UserBrief[]>(`/people${q ? `?q=${encodeURIComponent(q)}` : ""}`),
+    get: (id: number | string) => fetchJson<Profile>(`/people/${id}`),
+  },
+  teams: {
+    list: () => fetchJson<any[]>("/teams"),
+    get: (id: number | string) => fetchJson<TeamDetail>(`/teams/${id}`),
+  },
+  projects: {
+    list: () => fetchJson<any[]>("/projects"),
+    get: (id: number | string) => fetchJson<ProjectDetail>(`/projects/${id}`),
+  },
+  // `params` is a URLSearchParams with `q` and the repeated filter keys (see SEARCH_MULTI_KEYS).
+  search: (params: URLSearchParams = new URLSearchParams()) => {
     const qs = params.toString()
     return fetchJson<Entry[]>(`/search${qs ? `?${qs}` : ""}`)
   },
+  searchFacets: () => fetchJson<SearchFacets>("/search/facets"),
   similar: (title: string, body: string) =>
     fetchJson(`/entries/similar?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`),
   outdated: {
@@ -151,6 +378,7 @@ export const api = {
       country: string
       scope: string
       keywords: string[]
+      difference_note?: string
     }) => fetchJson<Entry>("/entries", { method: "POST", body: JSON.stringify(data) }),
     get: (publicId: string) => fetchJson<Entry>(`/entries/${encodeURIComponent(publicId)}`),
     update: (
@@ -161,6 +389,12 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
+    history: (publicId: string) =>
+      fetchJson<HistoryItem[]>(`/entries/${encodeURIComponent(publicId)}/history`),
+    diff: (publicId: string, version: number, against?: number) =>
+      fetchJson<EntryDiff>(
+        `/entries/${encodeURIComponent(publicId)}/versions/${version}/diff${against != null ? `?against=${against}` : ""}`,
+      ),
   },
   approvals: {
     pending: () => fetchJson<any[]>("/approvals/pending"),

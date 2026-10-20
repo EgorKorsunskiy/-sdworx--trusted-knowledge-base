@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { api, type User } from "@/lib/api"
+import { api, refreshSession, SIGNED_OUT_EVENT, type Session, type User } from "@/lib/api"
 
 interface AuthContextValue {
   user: User | null
   loading: boolean
   login: (userId: number) => Promise<void>
+  completeSignIn: (code: string, verifier: string, redirectUri: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -15,15 +16,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api
-      .me()
-      .then((res) => setUser(res.authenticated ? res.user : null))
-      .catch(() => setUser(null))
+    // Page load: the access token is only in memory, so ask the refresh cookie for a fresh one.
+    refreshSession()
+      .then((session: Session | null) => setUser(session?.authenticated ? session.user : null))
       .finally(() => setLoading(false))
+
+    // Renewal failed during a request: back to the sign-in screen.
+    const onSignedOut = () => setUser(null)
+    window.addEventListener(SIGNED_OUT_EVENT, onSignedOut)
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, onSignedOut)
   }, [])
 
   const login = async (userId: number) => {
     const res = await api.login(userId)
+    setUser(res.user)
+  }
+
+  const completeSignIn = async (code: string, verifier: string, redirectUri: string) => {
+    const res = await api.exchangeCode({ code, code_verifier: verifier, redirect_uri: redirectUri })
     setUser(res.user)
   }
 
@@ -33,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, completeSignIn, logout }}>
       {children}
     </AuthContext.Provider>
   )

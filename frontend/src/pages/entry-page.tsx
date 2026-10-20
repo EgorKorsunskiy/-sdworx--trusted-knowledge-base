@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
-import { api } from "@/lib/api"
+import { api, type EntryDiff, type HistoryItem } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog } from "@/components/ui/dialog"
 import { TrustBadge } from "@/components/trust-badge"
+import { DiffView } from "@/components/diff-view"
 
 export function EntryPage() {
   const { publicId } = useParams<{ publicId: string }>()
@@ -21,12 +22,19 @@ export function EntryPage() {
   const [voteCorrect, setVoteCorrect] = useState<boolean>(true)
   const [showOutdatedModal, setShowOutdatedModal] = useState(false)
   const [outdatedReason, setOutdatedReason] = useState("")
+  const [history, setHistory] = useState<HistoryItem[]>([])
+  const [openVersion, setOpenVersion] = useState<number | null>(null)
+  const [diffs, setDiffs] = useState<Record<number, EntryDiff>>({})
+  const [diffError, setDiffError] = useState("")
 
   const load = () => {
     if (!publicId) return
     api.entries.get(publicId)
       .then((res: any) => setEntry(res))
       .catch((err: any) => setError(err.message || "Failed to load entry"))
+    api.entries.history(publicId)
+      .then(setHistory)
+      .catch(() => {})
     api.votes.list(publicId)
       .then((res: any) => setVotes(res))
       .catch(() => {})
@@ -34,8 +42,29 @@ export function EntryPage() {
   }
 
   useEffect(() => {
+    setHistory([])
+    setDiffs({})
+    setOpenVersion(null)
+    setDiffError("")
     load()
   }, [publicId])
+
+  const toggleDiff = async (n: number) => {
+    if (!publicId) return
+    setDiffError("")
+    if (openVersion === n) {
+      setOpenVersion(null)
+      return
+    }
+    setOpenVersion(n)
+    if (diffs[n]) return
+    try {
+      const d = await api.entries.diff(publicId, n)
+      setDiffs((prev) => ({ ...prev, [n]: d }))
+    } catch (err: any) {
+      setDiffError(err.message || "Failed to load changes")
+    }
+  }
 
   const submitVote = async () => {
     if (!publicId || !voteDate || !voteWhere) return
@@ -99,11 +128,29 @@ export function EntryPage() {
           </div>
         )}
 
+        {entry.difference_note && (
+          <div className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-600/20">
+            <div className="text-xs font-medium text-amber-700">Note to verifiers</div>
+            <p className="mt-1 whitespace-pre-wrap">{entry.difference_note}</p>
+          </div>
+        )}
+
         <dl className="mt-6 divide-y divide-stone-100 border-t border-stone-100 text-sm">
           <div className="flex justify-between py-3">
             <dt className="text-stone-500">Author</dt>
-            <dd>{entry.author.display_name} · {entry.author.reputation} rep</dd>
+            <dd>
+              <Link to={`/people/${entry.author.id}`} className="hover:underline">{entry.author.display_name}</Link>
+              {" "}· {entry.author.reputation} rep
+            </dd>
           </div>
+          {v.edited_by && v.edited_by.id !== entry.author.id && (
+            <div className="flex justify-between py-3">
+              <dt className="text-stone-500">Last edited by</dt>
+              <dd>
+                <Link to={`/people/${v.edited_by.id}`} className="hover:underline">{v.edited_by.display_name}</Link>
+              </dd>
+            </div>
+          )}
           <div className="flex justify-between py-3">
             <dt className="text-stone-500">Country · Department</dt>
             <dd>{entry.country} · {entry.department}</dd>
@@ -127,14 +174,73 @@ export function EntryPage() {
         </div>
       </div>
 
+      {entry.who_to_ask && entry.who_to_ask.length > 0 && (
+        <div className="mt-6 card">
+          <h3 className="text-sm font-semibold">Who to ask</h3>
+          <ul className="mt-3 divide-y divide-stone-100 text-sm">
+            {entry.who_to_ask.map((p: any) => (
+              <li key={p.id} className="flex justify-between py-2">
+                <Link to={`/people/${p.id}`} className="font-medium hover:underline">{p.display_name}</Link>
+                <span className="text-stone-500">
+                  {[p.title, p.role && p.role.replace(/_/g, " ")].filter(Boolean).join(" · ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {votes.length > 0 && (
         <div className="mt-6 card">
           <h3 className="text-sm font-semibold">Usage records</h3>
           <ul className="mt-3 divide-y divide-stone-100 text-sm">
             {votes.map((vote) => (
               <li key={vote.id} className="flex justify-between py-2">
-                <span>{vote.user.display_name} · {vote.where_ref} · {vote.used_at}</span>
+                <span>
+                  <Link to={`/people/${vote.user.id}`} className="hover:underline">{vote.user.display_name}</Link>
+                  {" "}· {vote.where_ref} · {vote.used_at}</span>
                 <Badge variant={vote.is_correct ? "success" : "danger"}>{vote.is_correct ? "Correct" : "Incorrect"}</Badge>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-6 card">
+          <h3 className="text-sm font-semibold">History</h3>
+          <ul className="mt-3 divide-y divide-stone-100 text-sm">
+            {history.map((h) => (
+              <li key={h.version_id} className="py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="neutral">v{h.version_number}</Badge>
+                  {h.is_current && <Badge variant="success">current</Badge>}
+                  <Link to={`/people/${h.author.id}`} className="font-medium hover:underline">{h.author.display_name}</Link>
+                  <span className="text-stone-500">{new Date(h.created_at).toLocaleDateString()}</span>
+                  <span className="italic text-stone-600">{h.change_note}</span>
+                  <TrustBadge status={h.status} verifierRole={h.verifier_role ?? undefined} />
+                  <span className="text-xs text-stone-500">
+                    +{h.summary.added} ~{h.summary.edited} −{h.summary.removed}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleDiff(h.version_number)}
+                    className="ml-auto text-xs font-medium text-stone-600 hover:text-stone-900 hover:underline"
+                  >
+                    {openVersion === h.version_number ? "Hide" : "Show changes"}
+                  </button>
+                </div>
+                {openVersion === h.version_number && (
+                  <div className="mt-3">
+                    {diffs[h.version_number] ? (
+                      <DiffView diff={diffs[h.version_number]} />
+                    ) : diffError ? (
+                      <div className="text-red-600">{diffError}</div>
+                    ) : (
+                      <div className="text-stone-500">Loading…</div>
+                    )}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

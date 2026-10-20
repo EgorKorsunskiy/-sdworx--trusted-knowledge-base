@@ -1,54 +1,6 @@
-import pytest
-from fastapi.testclient import TestClient
+from tests.conftest import login
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-
-from app.database import Base, get_db
-from app.main import app
-from app.seeds import seed_all
-
-
-@pytest.fixture()
-def client(tmp_path, monkeypatch):
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-    # Point seed engine to in-memory by seeding directly
-    from app import seeds as seeds_mod
-    from app import database as db_mod
-
-    monkeypatch.setattr(db_mod, "engine", engine)
-    monkeypatch.setattr(seeds_mod, "engine", engine)
-
-    with TestingSession() as db:
-        # inline seed using shared engine
-        seed_all()
-
-    def override_get_db():
-        db = TestingSession()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
-
-
-def login(client: TestClient, user_id: int) -> dict:
-    r = client.post("/auth/dev-login", json={"user_id": user_id})
-    assert r.status_code == 200, r.text
-    data = r.json()
-    assert data["token"]
-    return {"Authorization": f"Bearer {data['token']}"}
 
 
 def test_health(client):
@@ -124,3 +76,81 @@ def test_author_edits_unverified_others_cannot(client):
     ver = client.get("/entries/PP-BE-FRE-00001/versions/1", headers=headers_a)
     assert ver.status_code == 200
     assert ver.json()["version_number"] == 1
+
+
+def _payload(**extra):
+    return {
+        "title": "Contractor rules outside BE",
+        "body": "Rules for contractors working outside Belgium.",
+        "category_id": 1,
+        "country": "BE",
+        "scope": "country",
+        **extra,
+    }
+
+
+def test_create_entry_with_difference_note(client):
+    headers = login(client, 1)
+    r = client.post(
+        "/entries",
+        headers=headers,
+        json=_payload(difference_note="  Covers contractors outside BE  "),
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["difference_note"] == "Covers contractors outside BE"
+    got = client.get(f"/entries/{r.json()['public_id']}", headers=headers)
+    assert got.json()["difference_note"] == "Covers contractors outside BE"
+
+
+def test_create_entry_without_note(client):
+    headers = login(client, 1)
+    r = client.post("/entries", headers=headers, json=_payload())
+    assert r.status_code == 201, r.text
+    assert r.json()["difference_note"] is None
+    r = client.post("/entries", headers=headers, json=_payload(difference_note="   "))
+    assert r.status_code == 201, r.text
+    assert r.json()["difference_note"] is None
+
+
+def test_note_in_pending_for_verifier(client):
+    r = client.post(
+        "/entries", headers=login(client, 1), json=_payload(difference_note="Different scope")
+    )
+    public_id = r.json()["public_id"]
+    pending = client.get("/approvals/pending", headers=login(client, 4))
+    assert pending.status_code == 200, pending.text
+    notes = {i["entry"]["public_id"]: i["entry"]["difference_note"] for i in pending.json()}
+    assert notes[public_id] == "Different scope"
+    assert notes["PP-BE-FRE-00001"] is None
+
+
+def test_note_hidden_from_non_verifier(client):
+    r = client.post(
+        "/entries", headers=login(client, 1), json=_payload(difference_note="Secret-ish note")
+    )
+    url = f"/entries/{r.json()['public_id']}"
+    assert client.get(url, headers=login(client, 2)).json()["difference_note"] is None
+    assert client.get(url).status_code == 401  # signing in is required to read entries
+    assert client.get(url, headers=login(client, 4)).json()["difference_note"] == "Secret-ish note"
+
+
+def test_note_too_long_rejected(client):
+    headers = login(client, 1)
+    r = client.post("/entries", headers=headers, json=_payload(difference_note="x" * 1001))
+    assert r.status_code == 422
+    r = client.post("/entries", headers=headers, json=_payload(difference_note="x" * 1000))
+    assert r.status_code == 201, r.text
+
+
+def test_ensure_columns_adds_missing_column():
+    from sqlalchemy import inspect, text
+
+    from app.database import _ensure_columns
+
+    eng = create_engine("sqlite://", poolclass=StaticPool)
+    with eng.begin() as conn:
+        conn.execute(text("CREATE TABLE entries (id INTEGER PRIMARY KEY)"))
+    _ensure_columns(eng)
+    assert "difference_note" in {c["name"] for c in inspect(eng).get_columns("entries")}
+    _ensure_columns(eng)  # idempotent
+    assert "difference_note" in {c["name"] for c in inspect(eng).get_columns("entries")}

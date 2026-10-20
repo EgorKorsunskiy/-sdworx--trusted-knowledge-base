@@ -5,14 +5,18 @@ Demo data loaded by `app/seeds` on startup. Seeding runs only on an empty databa
 | File | Rows | References |
 |---|---|---|
 | `categories.json` | `name`, `description`, `is_default` | — |
-| `teams.json` | `name`, `department`, `description` | — |
-| `users.json` | `email`, `display_name`, `department`, `title`, `roles`, optional `team` (primary team), optional `expert_departments` | `team` → team `name` |
+| `teams.json` | `name`, `department`, `description`, `lead`, `members` (`user`, `role`, `primary`) | `lead` / `members[].user` → user `email` |
+| `users.json` | `email`, `display_name`, `department`, `title`, `country`, `roles`, optional `expert_departments` | — |
+| `projects.json` | Internal projects: `name`, `description`, `status` (`active` / `completed`), `lead`, `members` (`user`, `role`, `start_date`, optional `end_date`) | `lead` / `members[].user` → user `email` |
 | `settings.json` | `key`, `value`, `value_type`, `description` | — |
-| `entries.json` | `public_id`, `scope`, `department`, `country`, `category`, `author`, optional `team`, `tags`, `versions` | `category` → category `name`, `author` / `edited_by` → user `email`, `team` → team `name` |
+| `entries.json` | `public_id`, `scope`, `department`, `country`, `category`, `author`, optional `team`, `tags`, `versions` | `category` → category `name`, `author` / `edited_by` / `verifier` → user `email`, `team` → team `name` |
+| `history_demo.json` | Entries in the `entries.json` format, without `public_id` (generated), for the change log demo | as `entries.json` |
 
-- User ids follow the order in `users.json`; tests log in as user 1 (Employee A) and 2 (Employee B), so append new users at the end.
-- An entry without `team` belongs to its author's team, so the author's team lead and manager can verify it.
-- `versions` are numbered in list order; each takes `title`, `body`, optional `justification`, `status` (default `Unverified`), `change_note` and `edited_by` (default: the entry author).
+- User ids follow the order in `users.json`; tests log in by id (1 = Employee A … 7 = Admin), so append new users at the end.
+- Verification scope of team leads and managers relies on **primary** team memberships; the `Payroll Experts` memberships are deliberately non-primary.
+- An entry without `team` belongs to its author's primary team, so the author's team lead and manager can verify it.
+- `versions` are numbered in list order; each takes `title`, `body`, optional `justification`, `status` (default `Unverified`), `change_note`, `edited_by` (default: the entry author), optional `created_days_ago` (default: now) and optional `verifications` (`verifier`, `role`, `days_ago`).
+- Projects and settings are also added to an already-seeded database when they are missing; `history_demo.json` is seeded only when the `seed_history_demo` setting is on (default).
 - A missing file is treated as an empty list.
 
 ## Sources for the AI parser

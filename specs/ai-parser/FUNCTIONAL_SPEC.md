@@ -46,8 +46,8 @@ Authorship is also about **whom to ask**. The authors of an entry are the people
 - **Author candidates** — the speaker and all confirmers of a meme. Each of them receives an **authorship request**.
 - **Authors** — the candidates who accepted their request. The meme is published with all of them as authors.
 - **Tags** — the shared tag entities of the main spec (FR-T1), linked many-to-many to memes as well as to entries. When a meme is published, the entry is linked to the same tags; clicking a tag opens Search with it pre-filled.
-- **Scope** — as in the main spec (BR-9): universal, EU-wide, country, company or project; agents suggest it per meme.
-- **Authorship basis, contacts, profile** — as defined in the main spec (section 3, FR-K, BR-8): every author is Responsible, or Relayed with a source; authors are listed as contacts on the entry and on their profile's Responsibilities tab.
+- **Scope** — as in the main spec (FR-E7, BR-11): universal, EU-wide, country, company or client project; agents suggest it per meme. A client project is not an internal Project of the main spec.
+- **Authorship basis, contacts, profile** — as defined in the main spec (section 3, FR-K, BR-10): every author is Responsible, or Relayed with a source; authors are listed as contacts on the entry and on their profile's Responsibilities tab.
 - **Quote** — an exact source fragment, with a timestamp (meeting) or message reference (chat). The statement and every confirmation each have their own quote.
 - **Usefulness vote** — a participant's judgement of whether a colleague's meme is worth keeping: *useful* or *not useful*. It is separate from the usage-record votes on entries (FR-P in the main spec).
 - **Published meme** — a meme an author added to the repository. It is linked to the resulting entry's public ID.
@@ -135,7 +135,7 @@ Usefulness voting is open while a meme is **New** or **Preparing**. On publishin
 
 ## 5. Functional requirements
 
-Phase marks what the hackathon PoC delivers (MVP) and what follows (Phase 2).
+The AI parser as a whole is Phase 2 of the main spec. Within it, Phase marks what the first parser release delivers (MVP) and what follows (Phase 2).
 
 ### Common agent rules
 
@@ -146,7 +146,7 @@ Phase marks what the hackathon PoC delivers (MVP) and what follows (Phase 2).
 | FR-MA3 | Every meme carries at least one quote from the source with a timestamp or message reference. A statement that no quote supports is not a meme. | MVP |
 | FR-MA4 | Every meme has exactly one speaker, mapped to a Peerpoint user. A statement whose speaker cannot be mapped to a user is not extracted. | MVP |
 | FR-MA5 | Agents extract only knowledge: facts, rules, decisions and how-tos. Small talk, opinions, task assignments and questions without an answer are skipped. | MVP |
-| FR-MA6 | Agents suggest a title, category, country and scope for each meme, used to prefill the Add entry form. When the information is valid only for one client or one project, the scope is company or project, with that company or project (BR-9 of the main spec). | MVP |
+| FR-MA6 | Agents suggest a title, category, country and scope for each meme, used to prefill the Add entry form. When the information is valid only for one client or one client project, the scope is company or client project, with that company or client project (BR-11 of the main spec); the statement then refers to the client project and never names the client. | MVP |
 | FR-MA7 | Agents give each meme a confidence score; memes below the configurable threshold are not shown. | MVP |
 | FR-MA8 | The same information said several times in one source becomes one meme with several quotes. | MVP |
 | FR-MA9 | Each meme is compared with existing repository entries (BR-2 of the main spec); similar entries are listed on the meme. | MVP (keyword), Phase 2 (embeddings) |
@@ -218,7 +218,7 @@ Phase marks what the hackathon PoC delivers (MVP) and what follows (Phase 2).
 | ID | Requirement | Phase |
 | --- | --- | --- |
 | FR-MP1 | Only authors (candidates who accepted) can add a meme to the repository; the action is not shown to anyone else, and the server rejects it for anyone else. | MVP |
-| FR-MP2 | "Add to repository" opens the Add entry form prefilled with the meme's title, statement, suggested category, country and scope (with company or project) and its tags; the author can edit everything before saving. | MVP |
+| FR-MP2 | "Add to repository" opens the Add entry form prefilled with the meme's title, statement, suggested category, country and scope (with company or client project) and its tags; the author can edit everything before saving. | MVP |
 | FR-MP3 | Before saving, the form shows all candidates with their responses, including decline reasons, so the author knows who is still pending and who objected. | MVP |
 | FR-MP4 | The justification is prefilled with the source reference (type, title, date), not with quotes or transcript text. If the saving author relayed the information, their source is added to it. | MVP |
 | FR-MP5 | Saving follows the normal entry flow: duplicate warning (FR-D in the main spec), then a new **Unverified** entry that appears in the approval tab of verifiers in scope. | MVP |
@@ -229,7 +229,7 @@ Phase marks what the hackathon PoC delivers (MVP) and what follows (Phase 2).
 
 ### Contacts
 
-Contacts, the authorship basis and the profile's Responsibilities tab are defined in the main spec (FR-K1–K13, BR-8). For memes, every accepted author — including co-authors who joined after publication — is a contact of the entry with the basis they chose (FR-MO15), and the entry appears on their Responsibilities tab.
+Contacts, the authorship basis and the profile's Responsibilities tab are defined in the main spec (FR-K1–K13, BR-10). For memes, every accepted author — including co-authors who joined after publication — is a contact of the entry with the basis they chose (FR-MO15), and the entry appears on their Responsibilities tab.
 
 ### Usefulness votes
 
@@ -288,13 +288,13 @@ Both agents return a list of memes in the same format. The backend validates it,
 | `speaker` | The user who said or wrote the information; exactly one |
 | `kind` | `fact`, `rule`, `decision` or `how-to` |
 | `statement` | Self-contained text of the meme, in the language of the source |
-| `suggested` | Prefill for the Add entry form: `title`, `category`, `country` and `scope` (`universal`, `eu`, `country`, `company` or `project`); for a company or project scope also `company` or `project` with its name |
+| `suggested` | Prefill for the Add entry form: `title`, `category`, `country` and `scope` (`universal`, `eu`, `country`, `company` or `client_project`); for a company or client-project scope also `company` or `client_project` with its name |
 | `tags` | Tag names; the backend links them to existing tag entities (many-to-many) or creates new ones (FR-MA12) |
 | `quotes` | One or more fragments supporting the statement; `at` is a timestamp (meeting) or message ID (chat) |
 | `speaker_basis_hint`, `confirmed_by[].basis_hint` | Suggested authorship basis (`responsible`, or `relayed` with a `source`) when the conversation makes it clear; `null` otherwise. Only a prefill: the author decides (FR-MO16) |
 | `confirmed_by` | Participants other than the speaker who explicitly confirmed the statement, each with the quote of their confirmation; may be empty |
 | `confidence` | 0–1; memes below the admin threshold are dropped |
-| `sensitive` | `true` when the meme or its quotes contain personal data or confidential customer data; a client named only through a company or project scope does not count |
+| `sensitive` | `true` when the meme or its quotes contain personal data or confidential customer data; a client named only through a company or client-project scope does not count |
 | `similar_entries` | Existing entries above the similarity threshold, from the existing similarity service |
 
 For the demo, sample sources go into `backend/mock_data/` next to the other mock data; the six demo scenarios (three meetings, three group chats) with their expected memes are described in [MOCK_SCENARIOS.md](MOCK_SCENARIOS.md).
@@ -410,7 +410,7 @@ For the demo, sample sources go into `backend/mock_data/` next to the other mock
 - [ ] A participant with an active usage vote on the entry, or who verified its current version, cannot request co-authorship.
 - [ ] After a decline, the same person cannot request again for that meme.
 
-Finding whom to ask about a published meme, and seeing a person's responsibilities, follows UC-8 of the main spec.
+Finding whom to ask about a published meme, and seeing a person's responsibilities, follows UC-10 of the main spec.
 
 ## 8. Business rules
 
@@ -447,7 +447,7 @@ All thresholds below are configurable by Admins; the values given are PoC defaul
 ### BR-M5 Sensitive data
 
 - SD Worx conversations often mention employees, salaries and customers. Agents flag any meme or quote containing personal data or confidential customer data (contacts, rates, contract terms, the client's staff) as `sensitive`.
-- Naming the client through a company or project scope is not sensitive (BR-9 of the main spec); the statement itself still must not contain the data above.
+- The client's name appears only in a company or client-project scope (BR-11 of the main spec), which is not sensitive. The statement never names the client — it refers to the client project — and must not contain the data above; a statement that names a client is flagged `sensitive`.
 - A sensitive meme cannot be published until the author has edited the text and confirmed that it no longer contains such data.
 - Quotes and context are never copied into the entry.
 
@@ -464,7 +464,7 @@ All thresholds below are configurable by Admins; the values given are PoC defaul
 
 ### BR-M8 Authorship basis
 
-- BR-8 of the main spec applies to every meme author.
+- BR-10 of the main spec applies to every meme author.
 - The source of a relayed author is shown on the entry to every reader, so it must not contain quotes from the conversation or sensitive data (BR-M5).
 
 ## 9. Screens and notifications
@@ -491,7 +491,7 @@ A **Memes** item is added to the main navigation next to Search.
 
 ## 10. Phasing and open questions
 
-**MVP (hackathon PoC):** manual upload of a meeting transcript and a group chat export; both agents with the shared output format, including confirmations; authorship requests with accept / decline; Memes page with the two tabs and the Meetings / Group chats filters; server-side participant visibility; publishing through the prefilled Add entry form with all accepted authors; co-authorship requests after publication; authorship basis chosen on accepting (contacts and profiles as in the main spec); usefulness votes; scope and tags on memes, with tag links to Search; sensitive-data flag; in-app notifications.
+**Parser MVP:** manual upload of a meeting transcript and a group chat export; both agents with the shared output format, including confirmations; authorship requests with accept / decline; Memes page with the two tabs and the Meetings / Group chats filters; server-side participant visibility; publishing through the prefilled Add entry form with all accepted authors; co-authorship requests after publication; authorship basis chosen on accepting (contacts and profiles as in the main spec); usefulness votes; scope and tags on memes, with tag links to Search; sensitive-data flag; in-app notifications.
 
 **Phase 2:** Microsoft Graph integration (automatic transcripts, incremental chat reading); replacing wrongly detected candidates; embedding-based similarity; source, status and tag filters; weekly digest.
 

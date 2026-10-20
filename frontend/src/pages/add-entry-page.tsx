@@ -18,6 +18,7 @@ export function AddEntryPage() {
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
   const [similar, setSimilar] = useState<any[]>([])
+  const [differenceNote, setDifferenceNote] = useState("")
 
   useEffect(() => {
     api.categories().then((cats: any) => {
@@ -52,6 +53,7 @@ export function AddEntryPage() {
         scope: form.get("scope") as string,
         category_id: categoryId,
         keywords,
+        difference_note: similar.length > 0 ? differenceNote.trim() || undefined : undefined,
       }
       const entry: any = await api.entries.create(data)
       navigate(`/entries/${entry.public_id}`)
@@ -80,7 +82,7 @@ export function AddEntryPage() {
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-amber-700">You can still submit, but consider suggesting a change to the existing entry.</p>
+          <p className="mt-2 text-xs text-amber-700">You can still submit, but consider suggesting a change to the existing entry. If you submit anyway, you can explain below why yours is different (optional).</p>
         </div>
       )}
       <form onSubmit={handleSubmit} className="card space-y-5">
@@ -97,6 +99,20 @@ export function AddEntryPage() {
           <label className="label">Justification / source</label>
           <Textarea name="justification" rows={2} className="mt-1.5" />
         </div>
+        {similar.length > 0 && (
+          <div className="rounded-xl bg-amber-50 p-4 ring-1 ring-amber-600/20">
+            <label className="label text-amber-900">Why is this different?</label>
+            <Textarea
+              name="difference_note"
+              rows={3}
+              maxLength={1000}
+              className="mt-1.5"
+              value={differenceNote}
+              onChange={(e) => setDifferenceNote(e.target.value)}
+            />
+            <p className="mt-1.5 text-xs text-amber-700">Optional. Verifiers will see this when deciding whether it is a duplicate.</p>
+          </div>
+        )}
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label className="label">Country</label>

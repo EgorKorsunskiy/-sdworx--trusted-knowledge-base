@@ -29,7 +29,7 @@ python -m uvicorn app.main:app --reload --port 8000
 
 Check it: http://127.0.0.1:8000/health (API docs: http://127.0.0.1:8000/docs).
 
-On the first start the backend creates the SQLite database `backend/peerpoint.db`, seeds the demo data from `backend/mock_data/` and generates its JWT signing keys in `backend/.keys/` (git-ignored). New columns on an existing database are added automatically at startup. To start from scratch, stop the backend, delete `backend/peerpoint.db` and start it again.
+On the first start the backend creates the SQLite database `backend/peerpoint.db` and seeds the demo data from `backend/mock_data/`. Its JWT signing keys are generated into `backend/.keys/` (git-ignored) the first time someone signs in. New columns on an existing database are added automatically at startup. To start from scratch, stop the backend, delete `backend/peerpoint.db` and start it again.
 
 ### 2. Frontend (port 5173)
 

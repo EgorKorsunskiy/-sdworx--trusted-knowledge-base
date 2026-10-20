@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link, useNavigate } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
-import { api, type EntryDiff, type HistoryItem } from "@/lib/api"
+import { api, type ContributorsResponse, type EntryDiff, type HistoryItem, type PullRequestBrief } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog } from "@/components/ui/dialog"
 import { TrustBadge } from "@/components/trust-badge"
 import { DiffView } from "@/components/diff-view"
+import { PRStatusBadge } from "@/components/pr-status-badge"
+import { ContributorBody } from "@/components/contributor-body"
 
 export function EntryPage() {
   const { publicId } = useParams<{ publicId: string }>()
+  const navigate = useNavigate()
+  const [openPRs, setOpenPRs] = useState<PullRequestBrief[]>([])
   const [entry, setEntry] = useState<any>(null)
   const [votes, setVotes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -26,6 +30,10 @@ export function EntryPage() {
   const [openVersion, setOpenVersion] = useState<number | null>(null)
   const [diffs, setDiffs] = useState<Record<number, EntryDiff>>({})
   const [diffError, setDiffError] = useState("")
+  const [contrib, setContrib] = useState<ContributorsResponse | null>(null)
+  const [highlightUser, setHighlightUser] = useState<number | null>(null)
+  const [scrollTo, setScrollTo] = useState<number | null>(null)
+  const [voteError, setVoteError] = useState("")
 
   const load = () => {
     if (!publicId) return
@@ -35,6 +43,12 @@ export function EntryPage() {
     api.entries.history(publicId)
       .then(setHistory)
       .catch(() => {})
+    api.entries.contributors(publicId)
+      .then(setContrib)
+      .catch(() => setContrib(null))
+    api.pullRequests.listForEntry(publicId, true)
+      .then(setOpenPRs)
+      .catch(() => {})
     api.votes.list(publicId)
       .then((res: any) => setVotes(res))
       .catch(() => {})
@@ -43,19 +57,26 @@ export function EntryPage() {
 
   useEffect(() => {
     setHistory([])
+    setOpenPRs([])
     setDiffs({})
     setOpenVersion(null)
     setDiffError("")
+    setContrib(null)
+    setHighlightUser(null)
     load()
   }, [publicId])
 
-  const toggleDiff = async (n: number) => {
+  useEffect(() => {
+    if (scrollTo == null) return
+    const el = document.getElementById(`history-v${scrollTo}`)
+    if (!el) return
+    el.scrollIntoView({ behavior: "smooth", block: "start" })
+    setScrollTo(null)
+  }, [scrollTo, diffs, openVersion, history])
+
+  const openDiff = async (n: number) => {
     if (!publicId) return
     setDiffError("")
-    if (openVersion === n) {
-      setOpenVersion(null)
-      return
-    }
     setOpenVersion(n)
     if (diffs[n]) return
     try {
@@ -66,9 +87,29 @@ export function EntryPage() {
     }
   }
 
+  const toggleDiff = async (n: number) => {
+    if (openVersion === n) {
+      setDiffError("")
+      setOpenVersion(null)
+      return
+    }
+    await openDiff(n)
+  }
+
+  const showChange = (n: number) => {
+    openDiff(n)
+    setScrollTo(n)
+  }
+
   const submitVote = async () => {
     if (!publicId || !voteDate || !voteWhere) return
-    await api.votes.create(publicId, { used_at: voteDate, where_ref: voteWhere, is_correct: voteCorrect })
+    setVoteError("")
+    try {
+      await api.votes.create(publicId, { used_at: voteDate, where_ref: voteWhere, is_correct: voteCorrect })
+    } catch (err: any) {
+      setVoteError(err.message || "Failed to report usage")
+      return
+    }
     setShowVoteModal(false)
     setVoteWhere("")
     load()
@@ -111,7 +152,9 @@ export function EntryPage() {
               {entry.public_id} · Version {v.version_number} · Updated {new Date(v.created_at).toLocaleDateString()}
             </p>
           </div>
-          <Button variant="secondary" size="sm">Suggest a change</Button>
+          <Button variant="secondary" size="sm" onClick={() => navigate(`/entries/${entry.public_id}/suggest`)}>
+            Suggest a change
+          </Button>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -120,7 +163,11 @@ export function EntryPage() {
           <Badge variant="danger">{incorrectCount} incorrect</Badge>
         </div>
 
-        <p className="mt-5 text-sm leading-6 text-stone-700 whitespace-pre-wrap">{v.body}</p>
+        {contrib && contrib.fragments.length > 0 ? (
+          <ContributorBody data={contrib} highlightUserId={highlightUser} onShowChange={showChange} />
+        ) : (
+          <p className="mt-5 text-sm leading-6 text-stone-700 whitespace-pre-wrap">{v.body}</p>
+        )}
 
         {v.justification && (
           <div className="mt-5 rounded-lg bg-stone-50 p-3 text-sm text-stone-600">
@@ -168,11 +215,44 @@ export function EntryPage() {
         </dl>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button onClick={() => setShowVoteModal(true)}>Report usage</Button>
+          {contrib?.viewer_is_contributor ? (
+            <span className="text-xs text-stone-500">
+              Authors and contributors cannot report usage on their own entry.
+            </span>
+          ) : (
+            <Button onClick={() => { setVoteError(""); setShowVoteModal(true) }}>Report usage</Button>
+          )}
           <Button variant="secondary" onClick={copyReference}>{copied ? "Copied" : "Copy reference"}</Button>
           <Button variant="ghost" onClick={() => setShowOutdatedModal(true)}>Mark outdated</Button>
         </div>
       </div>
+
+      {contrib && contrib.contributors.length > 0 && (
+        <div className="mt-6 card">
+          <h3 className="text-sm font-semibold">Contributors</h3>
+          <p className="mt-1 text-xs text-stone-500">Click a contributor to highlight their text</p>
+          <ul className="mt-3 divide-y divide-stone-100 text-sm">
+            {contrib.contributors.map((c) => {
+              const active = highlightUser === c.user.id
+              return (
+                <li key={c.user.id} className="flex items-center gap-2 py-2">
+                  <Link to={`/people/${c.user.id}`} className="font-medium hover:underline">{c.user.display_name}</Link>
+                  <Badge variant="neutral">{c.user.role_badge}</Badge>
+                  <span className="text-xs text-stone-500">{c.user.reputation} rep</span>
+                  <button
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setHighlightUser(active ? null : c.user.id)}
+                    className={`ml-auto rounded-md px-2 py-1 text-xs font-medium ring-1 ring-stone-300 hover:bg-stone-100 ${active ? "bg-amber-100" : "bg-white"}`}
+                  >
+                    {active ? "Highlighted" : `${c.fragment_count} ${c.fragment_count === 1 ? "line" : "lines"}`}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       {entry.who_to_ask && entry.who_to_ask.length > 0 && (
         <div className="mt-6 card">
@@ -206,12 +286,28 @@ export function EntryPage() {
         </div>
       )}
 
+      {openPRs.length > 0 && (
+        <div className="mt-6 card">
+          <h3 className="text-sm font-semibold">Open pull requests</h3>
+          <ul className="mt-3 divide-y divide-stone-100 text-sm">
+            {openPRs.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-2 py-2">
+                <Link to={`/pull-requests/${p.id}`} className="font-medium hover:underline">{p.title}</Link>
+                <PRStatusBadge status={p.status} />
+                <Link to={`/people/${p.author.id}`} className="text-stone-600 hover:underline">{p.author.display_name}</Link>
+                <span className="text-stone-500">{new Date(p.created_at).toLocaleDateString()}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {history.length > 0 && (
         <div className="mt-6 card">
           <h3 className="text-sm font-semibold">History</h3>
           <ul className="mt-3 divide-y divide-stone-100 text-sm">
             {history.map((h) => (
-              <li key={h.version_id} className="py-3">
+              <li key={h.version_id} id={`history-v${h.version_number}`} className="scroll-mt-4 py-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="neutral">v{h.version_number}</Badge>
                   {h.is_current && <Badge variant="success">current</Badge>}
@@ -267,6 +363,7 @@ export function EntryPage() {
       <Dialog open={showVoteModal} onClose={() => setShowVoteModal(false)} title="Report usage">
         <div className="space-y-4">
           <p className="text-sm text-stone-600">This records that you used this information, where, and whether it was correct.</p>
+          {voteError && <div className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{voteError}</div>}
           <div>
             <label className="label">Date of use</label>
             <Input type="date" value={voteDate} onChange={(e) => setVoteDate(e.target.value)} />

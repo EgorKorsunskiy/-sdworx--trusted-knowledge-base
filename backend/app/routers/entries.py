@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps.auth import get_current_user, load_user, user_to_out
-from app.models import Category, Entry, EntryVersion, RoleType, Tag, User, VersionStatus
+from app.models import Category, Entry, EntryVersion, Notification, RoleType, Tag, User, VersionStatus
 from app.schemas import (
     EntryCreate,
     EntryDetailOut,
@@ -230,6 +230,18 @@ def create_entry(
         entry.tags.append(_ensure_tag(db, name))
 
     _apply_auto_tags(db, entry, author)
+
+    db.flush()
+    # UC-1 step 4: verifiers in scope hear about the new entry (see get_verifiers_for_entry for the fallback).
+    for verifier in get_verifiers_for_entry(db, entry):
+        if verifier.id != author.id:
+            db.add(Notification(
+                user_id=verifier.id,
+                event_type="new_entry",
+                title="New entry waiting for verification",
+                body=f"{author.display_name} added {entry.public_id}: {title}",
+                link=f"/entries/{entry.public_id}",
+            ))
 
     db.commit()
     entry = _reload(db, entry.id)

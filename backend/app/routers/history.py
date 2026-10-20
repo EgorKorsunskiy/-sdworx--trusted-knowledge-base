@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.deps.auth import get_current_user
 from app.models import Entry, EntryVersion, User, Verification
-from app.schemas import EntryDiffOut, HistoryItemOut
+from app.schemas import ContributorsOut, EntryDiffOut, HistoryItemOut
+from app.services.blame import VersionSnap, compute_blame, contributor_stats
+from app.services.permissions import contributor_role_badge, entry_contributor_ids
 from app.services.diff import attribute_range, build_diff, get_approvers, snapshot, user_ref
 
 router = APIRouter(prefix="/entries", tags=["history"])
@@ -111,3 +113,65 @@ def entry_version_diff(
         if base_v is None:
             raise HTTPException(status_code=404, detail="Base version not found")
     return _diff_for(db, entry, to_v, base_v)
+
+
+@router.get("/{public_id}/contributors", response_model=ContributorsOut)
+def entry_contributors(
+    public_id: str,
+    version: int | None = Query(None, ge=1),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    entry = _get_entry(db, public_id)
+    versions = sorted(entry.versions, key=lambda v: v.version_number)
+    current_number = versions[-1].version_number
+    target = current_number if version is None else version
+    if target not in {v.version_number for v in versions}:
+        raise HTTPException(status_code=404, detail="Version not found")
+    snaps = [
+        VersionSnap(v.version_number, v.body or "", v.edited_by_id)
+        for v in versions
+        if v.version_number <= target
+    ]
+    lines = compute_blame(snaps)
+    stats = contributor_stats(lines)
+    ids = [s["user_id"] for s in stats]
+    users = {}
+    if ids:
+        rows = db.query(User).options(joinedload(User.roles)).filter(User.id.in_(ids)).all()
+        users = {u.id: u for u in rows}
+    return {
+        "version_number": target,
+        "current_version_number": current_number,
+        "viewer_is_contributor": user.id in entry_contributor_ids(db, entry),
+        "fragments": [
+            {
+                "index": l.index,
+                "text": l.text,
+                "separator_before": l.sep,
+                "contributor_ids": list(l.contributor_ids),
+                "introduced_in_version": l.introduced_in,
+                "last_edited_in_version": l.last_edited_in,
+            }
+            for l in lines
+        ],
+        "contributors": [
+            {
+                "user": {
+                    "id": u.id,
+                    "display_name": u.display_name,
+                    "title": u.title,
+                    "department": u.department,
+                    "email": u.email,
+                    "reputation": u.reputation or 0,
+                    "role_badge": contributor_role_badge(u),
+                },
+                "fragment_indexes": s["fragment_indexes"],
+                "fragment_count": s["fragment_count"],
+                "first_version": s["first_version"],
+                "last_version": s["last_version"],
+            }
+            for s in stats
+            if (u := users.get(s["user_id"])) is not None
+        ],
+    }

@@ -6,6 +6,9 @@ from app.database import get_db
 from app.deps.auth import get_current_user, user_to_out
 from app.models import EntryVersion, Notification, SystemSetting, UsageVote, User
 from app.schemas import UsageVoteCreate, UsageVoteOut
+from app.services.blame import VersionSnap, compute_blame
+from app.services.permissions import entry_contributor_ids
+from app.services.reputation import award, reputation_value
 
 router = APIRouter(prefix="/entries/{public_id}/votes", tags=["votes"])
 
@@ -21,9 +24,7 @@ def _to_out(vote: UsageVote) -> UsageVoteOut:
     )
 
 
-def _reputation_value(db: Session, key: str) -> int:
-    setting = db.query(SystemSetting).filter(SystemSetting.key == key).first()
-    return int(setting.value) if setting else 0
+_reputation_value = reputation_value
 
 
 @router.get("", response_model=list[UsageVoteOut])
@@ -65,8 +66,10 @@ def create_vote(
     )
     if version is None:
         raise HTTPException(status_code=404, detail="Entry not found")
-    if version.entry.author_id == user.id or version.edited_by_id == user.id:
-        raise HTTPException(status_code=403, detail="Cannot vote on own entry")
+    if user.id in entry_contributor_ids(db, version.entry):
+        raise HTTPException(
+            status_code=403, detail="Authors and contributors cannot report usage on their own entry"
+        )
 
     existing = (
         db.query(UsageVote)
@@ -86,8 +89,16 @@ def create_vote(
     db.add(vote)
 
     if vote.is_correct:
-        points = _reputation_value(db, "reputation_vote")
-        version.edited_by.reputation += points
+        snaps = [
+            VersionSnap(v.version_number, v.body or "", v.edited_by_id)
+            for v in sorted(version.entry.versions, key=lambda v: v.version_number)
+        ]
+        winners = {version.entry.author_id, version.edited_by_id}
+        for line in compute_blame(snaps):
+            winners.update(line.contributor_ids)
+        winners.discard(user.id)
+        for u in db.query(User).filter(User.id.in_(winners)).all():
+            award(db, u, "reputation_vote")
     else:
         # Notify author and last verifier
         last_verifier_id = None

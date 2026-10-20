@@ -14,6 +14,8 @@ import { AdminPage } from "@/pages/admin-page"
 import { EmployeeProfilePage } from "@/pages/employee-profile-page"
 import { TeamPage } from "@/pages/team-page"
 import { ProjectPage } from "@/pages/project-page"
+import { SuggestChangePage } from "@/pages/suggest-change-page"
+import { PullRequestPage } from "@/pages/pull-request-page"
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -36,6 +38,8 @@ function AppRoutes() {
                 <Route path="/" element={<SearchPage />} />
                 <Route path="/add" element={<AddEntryPage />} />
                 <Route path="/entries/:publicId" element={<EntryPage />} />
+                <Route path="/entries/:publicId/suggest" element={<SuggestChangePage />} />
+                <Route path="/pull-requests/:id" element={<PullRequestPage />} />
                 <Route path="/approvals" element={<ApprovalsPage />} />
                 <Route path="/contributions" element={<ContributionsPage />} />
                 <Route path="/people/:id" element={<EmployeeProfilePage />} />

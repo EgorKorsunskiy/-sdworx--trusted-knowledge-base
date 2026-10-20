@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
 import { api } from "@/lib/api"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,9 @@ export function NotificationsPage() {
                   <h3 className="text-sm font-medium">{n.title}</h3>
                   <p className="text-sm text-stone-600">{n.body}</p>
                   <p className="mt-1 text-xs text-stone-400">{new Date(n.created_at).toLocaleString()}</p>
+                  {n.link && (
+                    <Link to={n.link} className="mt-1 inline-block text-sm font-medium text-stone-700 hover:underline">View</Link>
+                  )}
                 </div>
                 {!n.is_read && <Button size="sm" variant="secondary" onClick={() => markRead(n.id)}>Mark read</Button>}
               </div>

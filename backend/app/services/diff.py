@@ -13,17 +13,35 @@ from app.models import EntryVersion, PRApproval, Verification
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 
-def split_fragments(text: str | None) -> list[str]:
-    """Split a body into fragments: one per line, and one per sentence within a line."""
+def split_fragments_ex(text: str | None) -> list[tuple[str, str]]:
+    """Like split_fragments but returns (separator_before, fragment).
+
+    The separator is '' for the first fragment, the matched whitespace between sentences of one line,
+    or '\\n' * k across lines (k = newlines since the previous fragment; blank lines give '\\n\\n').
+    """
     if not text:
         return []
-    out: list[str] = []
-    for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
-        for piece in _SENTENCE_END.split(line):
-            piece = piece.strip()
-            if piece:
-                out.append(piece)
+    out: list[tuple[str, str]] = []
+    pending = 0
+    for idx, line in enumerate(text.replace("\r\n", "\n").replace("\r", "\n").split("\n")):
+        if idx > 0:
+            pending += 1
+        line = line.strip()
+        if not line:
+            continue
+        sep = "\n" * pending if out else ""
+        pending = 0
+        last = 0
+        for m in _SENTENCE_END.finditer(line):
+            out.append((sep, line[last : m.start()]))
+            sep, last = m.group(), m.end()
+        out.append((sep, line[last:]))
     return out
+
+
+def split_fragments(text: str | None) -> list[str]:
+    """Split a body into fragments: one per line, and one per sentence within a line."""
+    return [t for _, t in split_fragments_ex(text)]
 
 
 def snapshot(v: EntryVersion | None) -> dict:

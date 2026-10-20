@@ -399,3 +399,114 @@ class HistoryItemOut(BaseModel):
     verifier_role: str | None = None
     approvers: list[ApproverOut] = []
     summary: DiffSummary
+
+
+# --- Contributors / blame ---
+
+
+class ContributorUser(BaseModel):
+    id: int
+    display_name: str
+    title: str | None = None
+    department: str | None = None
+    email: str
+    reputation: int
+    role_badge: str
+
+
+class BlameFragmentOut(BaseModel):
+    index: int
+    text: str
+    separator_before: str
+    contributor_ids: list[int]
+    introduced_in_version: int
+    last_edited_in_version: int
+
+
+class ContributorOut(BaseModel):
+    user: ContributorUser
+    fragment_indexes: list[int]
+    fragment_count: int
+    first_version: int
+    last_version: int
+
+
+class ContributorsOut(BaseModel):
+    version_number: int
+    current_version_number: int
+    viewer_is_contributor: bool
+    fragments: list[BlameFragmentOut]
+    contributors: list[ContributorOut]
+
+
+# --- Pull requests ---
+
+
+class PullRequestCreate(BaseModel):
+    title: str | None = Field(default=None, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+    proposed_title: str | None = Field(default=None, max_length=512)
+    proposed_body: str | None = Field(default=None, max_length=20000)
+    proposed_justification: str | None = Field(default=None, max_length=5000)
+    change_note: str = Field(min_length=1, max_length=500)
+
+
+class PRApproveIn(BaseModel):
+    comment: str | None = Field(default=None, max_length=1000)
+
+
+class PRRejectIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+class PRApprovalOut(BaseModel):
+    id: int
+    step: str
+    action: Literal["approve", "reject", "skip"]
+    comment: str | None = None
+    created_at: datetime
+    approver: AuthorRef
+
+
+class PullRequestBrief(BaseModel):
+    id: int
+    title: str | None = None
+    status: str
+    author: AuthorRef
+    created_at: datetime
+    resolved_at: datetime | None = None
+    change_note: str | None = None
+    base_version_number: int | None = None
+    is_stale: bool = False
+
+
+class PREntryRef(BaseModel):
+    public_id: str
+    title: str
+    department: str
+
+
+class PREntryDetail(PREntryRef):
+    author: AuthorRef
+    current_version_number: int
+
+
+class PullRequestOut(PullRequestBrief):
+    entry: PREntryDetail
+    description: str | None = None
+    proposed_title: str | None = None
+    proposed_body: str | None = None
+    proposed_justification: str | None = None
+    approvals: list[PRApprovalOut] = []
+    rejection_reason: str | None = None
+    merged_version_number: int | None = None
+    next_step: Literal["author", "verifier"] | None = None
+    waiting_on: list[AuthorRef] = []
+    can_approve_as_author: bool = False
+    can_approve_as_verifier: bool = False
+    can_reject: bool = False
+
+
+class PendingPROut(PullRequestBrief):
+    step: Literal["author", "verifier"]
+    entry: PREntryRef

@@ -245,6 +245,100 @@ export type HistoryItem = {
   summary: DiffSummary
 }
 
+export type ContributorUser = {
+  id: number
+  display_name: string
+  title: string | null
+  department: string | null
+  email: string
+  reputation: number
+  role_badge: string
+}
+
+export type BlameFragment = {
+  index: number
+  text: string
+  separator_before: string
+  contributor_ids: number[]
+  introduced_in_version: number
+  last_edited_in_version: number
+}
+
+export type ContributorEntry = {
+  user: ContributorUser
+  fragment_indexes: number[]
+  fragment_count: number
+  first_version: number
+  last_version: number
+}
+
+export type ContributorsResponse = {
+  version_number: number
+  current_version_number: number
+  viewer_is_contributor: boolean
+  fragments: BlameFragment[]
+  contributors: ContributorEntry[]
+}
+
+export type PRStatus = "open" | "author_approved" | "verifier_approved" | "merged" | "rejected"
+
+export type PRApproval = {
+  id: number
+  step: "author" | "verifier"
+  action: "approve" | "reject" | "skip"
+  comment: string | null
+  created_at: string
+  approver: AuthorRef
+}
+
+export type PullRequestBrief = {
+  id: number
+  title: string | null
+  status: PRStatus
+  author: AuthorRef
+  created_at: string
+  resolved_at: string | null
+  change_note: string | null
+  base_version_number: number | null
+  is_stale: boolean
+}
+
+export type PullRequest = PullRequestBrief & {
+  entry: {
+    public_id: string
+    title: string
+    department: string
+    author: AuthorRef
+    current_version_number: number
+  }
+  description: string | null
+  proposed_title: string | null
+  proposed_body: string | null
+  proposed_justification: string | null
+  approvals: PRApproval[]
+  rejection_reason: string | null
+  merged_version_number: number | null
+  next_step: "author" | "verifier" | null
+  waiting_on: AuthorRef[]
+  can_approve_as_author: boolean
+  can_approve_as_verifier: boolean
+  can_reject: boolean
+}
+
+export type PendingPullRequest = PullRequestBrief & {
+  step: "author" | "verifier"
+  entry: { public_id: string; title: string; department: string }
+}
+
+export type PullRequestCreate = {
+  title?: string
+  description?: string
+  proposed_title?: string
+  proposed_body?: string
+  proposed_justification?: string
+  change_note: string
+}
+
 const jsonBody = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) })
 
 export type AuthConfig = {
@@ -391,10 +485,29 @@ export const api = {
       }),
     history: (publicId: string) =>
       fetchJson<HistoryItem[]>(`/entries/${encodeURIComponent(publicId)}/history`),
+    contributors: (publicId: string, version?: number) =>
+      fetchJson<ContributorsResponse>(
+        `/entries/${encodeURIComponent(publicId)}/contributors${version != null ? `?version=${version}` : ""}`,
+      ),
     diff: (publicId: string, version: number, against?: number) =>
       fetchJson<EntryDiff>(
         `/entries/${encodeURIComponent(publicId)}/versions/${version}/diff${against != null ? `?against=${against}` : ""}`,
       ),
+  },
+  pullRequests: {
+    create: (publicId: string, body: PullRequestCreate) =>
+      fetchJson<PullRequest>(`/entries/${encodeURIComponent(publicId)}/pull-requests`, jsonBody("POST", body)),
+    listForEntry: (publicId: string, openOnly = false) =>
+      fetchJson<PullRequestBrief[]>(
+        `/entries/${encodeURIComponent(publicId)}/pull-requests?open_only=${openOnly}`,
+      ),
+    get: (id: number | string) => fetchJson<PullRequest>(`/pull-requests/${id}`),
+    diff: (id: number | string) => fetchJson<EntryDiff>(`/pull-requests/${id}/diff`),
+    approve: (id: number | string, comment?: string) =>
+      fetchJson<PullRequest>(`/pull-requests/${id}/approve`, jsonBody("POST", { comment: comment || null })),
+    reject: (id: number | string, reason: string) =>
+      fetchJson<PullRequest>(`/pull-requests/${id}/reject`, jsonBody("POST", { reason })),
+    pending: () => fetchJson<PendingPullRequest[]>("/pull-requests/pending"),
   },
   approvals: {
     pending: () => fetchJson<any[]>("/approvals/pending"),

@@ -55,6 +55,8 @@ def pending_approvals(
     )
     result = []
     for v in versions:
+        if v.entry.versions[-1].id != v.id:
+            continue  # superseded by a newer version (e.g. a merged PR): nothing left to verify here
         if can_verify_version(db, user, v):
             result.append({
                 "version": _version_to_out(v),
@@ -84,6 +86,8 @@ def verify_version(
         raise HTTPException(status_code=404, detail="Version not found")
     if not can_verify_version(db, user, version):
         raise HTTPException(status_code=403, detail="Not authorized to verify this version")
+    if version.entry.versions[-1].id != version.id:
+        raise HTTPException(status_code=409, detail="This version was superseded by a newer one")
 
     version.status = VersionStatus.VERIFIED.value
     badge = verifier_role_badge(user)

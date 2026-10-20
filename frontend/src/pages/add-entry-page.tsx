@@ -17,6 +17,7 @@ export function AddEntryPage() {
   const [categoryId, setCategoryId] = useState(1)
   const [title, setTitle] = useState("")
   const [body, setBody] = useState("")
+  const [justification, setJustification] = useState("")
   const [similar, setSimilar] = useState<any[]>([])
   const [differenceNote, setDifferenceNote] = useState("")
 
@@ -48,7 +49,7 @@ export function AddEntryPage() {
       const data = {
         title,
         body,
-        justification: (form.get("justification") as string) || undefined,
+        justification: justification.trim() || undefined,
         country: form.get("country") as string,
         scope: form.get("scope") as string,
         category_id: categoryId,
@@ -79,6 +80,14 @@ export function AddEntryPage() {
             {similar.map((s) => (
               <li key={s.public_id}>
                 <Link className="underline" to={`/entries/${s.public_id}`}>{s.public_id}</Link> · {s.title} · {Math.round(s.score * 100)}% similar
+                {" · "}
+                <Link
+                  className="font-medium underline"
+                  to={`/entries/${s.public_id}/suggest`}
+                  state={{ prefill: { title, body, justification }, fromDuplicate: true }}
+                >
+                  Create pull request
+                </Link>
               </li>
             ))}
           </ul>
@@ -97,7 +106,7 @@ export function AddEntryPage() {
         </div>
         <div>
           <label className="label">Justification / source</label>
-          <Textarea name="justification" rows={2} className="mt-1.5" />
+          <Textarea name="justification" rows={2} className="mt-1.5" value={justification} onChange={(e) => setJustification(e.target.value)} />
         </div>
         {similar.length > 0 && (
           <div className="rounded-xl bg-amber-50 p-4 ring-1 ring-amber-600/20">

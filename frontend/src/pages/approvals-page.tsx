@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react"
-import { api, type EntryDiff } from "@/lib/api"
+import { api, type EntryDiff, type PendingPullRequest } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/page-header"
 import { TrustBadge } from "@/components/trust-badge"
 import { DiffView } from "@/components/diff-view"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import { Badge } from "@/components/ui/badge"
+import { PRStatusBadge } from "@/components/pr-status-badge"
 
 export function ApprovalsPage() {
+  const navigate = useNavigate()
   const [items, setItems] = useState<any[]>([])
+  const [prs, setPrs] = useState<PendingPullRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [actionVersion, setActionVersion] = useState<number | null>(null)
   const [comment, setComment] = useState("")
@@ -15,6 +19,7 @@ export function ApprovalsPage() {
 
   const load = () => {
     setLoading(true)
+    api.pullRequests.pending().then(setPrs).catch(() => setPrs([]))
     api.approvals.pending()
       .then(setItems)
       .catch(console.error)
@@ -56,7 +61,32 @@ export function ApprovalsPage() {
 
   return (
     <div>
-      <PageHeader title="Approvals" subtitle="Pending versions in your scope" />
+      <PageHeader title="Approvals" subtitle="Pull requests and versions waiting for your review" />
+      {prs.length > 0 && (
+        <div className="mb-6">
+          <h2 className="mb-2 text-sm font-semibold">Pull requests</h2>
+          <div className="list-panel">
+            {prs.map((p) => (
+              <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 p-5">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link to={`/pull-requests/${p.id}`} className="font-medium hover:underline">{p.title}</Link>
+                    <PRStatusBadge status={p.status} />
+                    {p.is_stale && <Badge variant="outdated">Stale</Badge>}
+                  </div>
+                  <p className="mt-1 text-sm text-stone-500">
+                    {p.entry.public_id} · by{" "}
+                    <Link to={`/people/${p.author.id}`} className="hover:underline">{p.author.display_name}</Link>
+                    {" "}· {p.step === "author" ? "Your approval as entry author" : "Entry author inactive: your approval as verifier"}
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => navigate(`/pull-requests/${p.id}`)}>Review</Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {prs.length > 0 && <h2 className="mb-2 text-sm font-semibold">Versions</h2>}
       <div className="list-panel">
         {items.length === 0 ? (
           <div className="p-8 text-center text-sm text-stone-500">No pending approvals in your scope.</div>

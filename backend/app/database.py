@@ -38,6 +38,7 @@ COLUMN_MIGRATIONS = [
     ("teams", "lead_user_id", "INTEGER REFERENCES users(id)"),
     ("team_memberships", "role", "VARCHAR(64) NOT NULL DEFAULT 'Member'"),
     ("entry_versions", "source_pr_id", "INTEGER REFERENCES pull_requests(id)"),
+    ("pull_requests", "base_version_number", "INTEGER"),
 ]
 
 

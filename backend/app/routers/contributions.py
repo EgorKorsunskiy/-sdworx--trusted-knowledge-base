@@ -30,8 +30,11 @@ def my_contributions(
                 "id": p.id,
                 "entry_public_id": p.entry.public_id,
                 "title": p.title,
+                "entry_title": p.entry.versions[-1].title,
+                "change_note": p.change_note,
                 "status": p.status,
                 "created_at": p.created_at,
+                "resolved_at": p.resolved_at,
             }
             for p in prs
         ],

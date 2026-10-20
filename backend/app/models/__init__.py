@@ -334,6 +334,7 @@ class PullRequest(Base):
     proposed_body: Mapped[str | None] = mapped_column(Text, nullable=True)
     proposed_justification: Mapped[str | None] = mapped_column(Text, nullable=True)
     change_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    base_version_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

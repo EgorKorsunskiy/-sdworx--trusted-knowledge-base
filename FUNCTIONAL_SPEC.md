@@ -36,14 +36,15 @@ Every user is an Employee; Author, Senior expert, Team lead / Manager and Admin 
 
 - **Senior expert** — entries of the departments an Admin has mapped to them.
 - **Team lead / Manager** — only entries authored by members of their own team, taken from the org hierarchy. Verifying for their own team is each manager's and team lead's responsibility, so they never verify outside it, even within the same department.
+- **Fallback** — if nobody is in scope for an entry (no senior expert mapped to its department and no team lead or manager in its author's team, apart from the author and the editor themselves), any Manager or Admin can verify it. As soon as someone is in scope, the fallback no longer applies.
 - **Outdated requests** — decided only by managers and higher in the author's reporting line. Team leads and senior experts do not decide on them.
 
 | Role | Who | Main responsibilities |
 | --- | --- | --- |
 | Employee | Every SD Worx user | Search, read, add entries, vote, request outdated, open PRs |
-| Author | Creator or contributor of an entry | First approval of PRs on their entry, updates outdated entries via PR |
-| Senior expert | Assigned by Admin per department | Verifies entries, second approval of PRs |
-| Team lead / Manager | From the org hierarchy | Verifies entries and approves PRs for their own team only; managers and higher also decide on outdated requests |
+| Author | Creator of an entry | Approves PRs on their entry (their approval merges the PR), updates outdated entries via PR |
+| Senior expert | Assigned by Admin per department | Verifies entries and versions; stands in for an inactive author on PRs |
+| Team lead / Manager | From the org hierarchy | Verify entries and versions for their own team only (and stand in for an inactive author on PRs for their own team); managers and higher also decide on outdated requests |
 | Admin | Platform owners | Roles, department mapping, categories, tags, thresholds, teams, projects and their memberships |
 
 ### Permissions matrix
@@ -57,9 +58,8 @@ Every user is an Employee; Author, Senior expert, Team lead / Manager and Admin 
 | Request that an entry is marked Outdated (with reason) | Yes | Yes | Yes | Yes | Yes |
 | Approve or reject an outdated request | No | No | No | Managers and higher, author's line only | No |
 | Open a pull request | Yes | Yes | Yes | Yes | Yes |
-| Approve a PR (step 1) | No | Own entries | No | No | No |
-| Approve a PR (step 2) | No | No | Mapped departments | Own team | No |
-| Verify an entry version | No | Never own | Mapped departments | Own team | No |
+| Approve and merge a PR | No | Own entries (never their own PR, unless they are the entry's author) | Only if the entry's author is inactive, mapped departments | Only if the entry's author is inactive, own team | No |
+| Verify an entry version | No | Never own | Mapped departments | Own team (any Manager also by fallback) | Only by fallback, never own |
 | Restore an Outdated entry (still valid) | No | No | No | Managers and higher, author's line only | No |
 | View an employee profile with their teams and projects | Yes | Yes | Yes | Yes | Yes |
 | Manage teams, projects and memberships | No | No | No | No | Yes |
@@ -102,14 +102,13 @@ stateDiagram-v2
 stateDiagram-v2
     direction LR
     [*] --> Open
-    Open --> AuthorApproved: author approves
-    Open --> Rejected: author rejects
-    AuthorApproved --> VerifierApproved: verifier approves
-    AuthorApproved --> Rejected: verifier rejects
-    VerifierApproved --> Merged
+    Open --> Merged: entry author approves
+    Open --> Rejected: entry author rejects
     Merged --> [*]: new Unverified version of the same entry
     Rejected --> [*]
 ```
+
+Only the entry author decides on a PR. The merged version is Unverified and then goes through normal verification like any other new version. If the entry's author is no longer active, a verifier in scope decides in their place. A PR opened by the entry author themselves merges immediately.
 
 A version becomes Verified only through a verifier. It becomes Outdated only when a manager approves an outdated request; it then ranks lower until a manager restores it or a merged PR supersedes it with a new, Unverified version of the same entry. Votes can be added in any status and belong to one version.
 
@@ -135,7 +134,7 @@ Requirements are grouped by module. Phase marks what the hackathon PoC delivers 
 | FR-V1 | Senior experts, team leads and managers have an approval tab listing unverified versions in their scope. | MVP |
 | FR-V2 | A verifier can approve a version; it becomes Verified with a role badge (Senior Expert, Team Lead, Manager). | MVP |
 | FR-V3 | A verifier can send a version back to the author with a comment. | MVP |
-| FR-V4 | Admins maintain the mapping of which senior experts may verify which departments. Team leads and managers verify only entries of their own team, based on the org hierarchy. | MVP |
+| FR-V4 | Admins maintain the mapping of which senior experts may verify which departments. Team leads and managers verify only entries of their own team, based on the org hierarchy. If nobody is in scope for an entry, any Manager or Admin can verify it (fallback). Only the current version of an entry is queued for verification. | MVP |
 | FR-V5 | Verification attaches to a version, not to the entry. A new version starts Unverified. | MVP |
 | FR-V6 | Unverified entries show who to ask: the author and verifiers of that department. | MVP |
 
@@ -181,9 +180,9 @@ Requirements are grouped by module. Phase marks what the hackathon PoC delivers 
 | FR-D2 | Above the similarity threshold, the user sees an advisory warning with the similar entries and a "Create pull request" option. The warning never blocks saving. | MVP |
 | FR-D3 | The user can still save the entry after the warning. It follows the standard flow: saved as Unverified, published and findable in search immediately, then verified by a verifier in scope. The user can optionally add a "why is this different?" note, which is stored on the entry and shown to verifiers in the approval tab. | MVP |
 | FR-D4 | Any employee can open a PR on an existing entry via "Suggest change", with proposed content and a change note. | Phase 2 |
-| FR-D5 | A PR is approved by the original author first, then by a verifier in scope. | Phase 2 |
-| FR-D6 | Either approver can reject a PR with a reason. | Phase 2 |
-| FR-D7 | On final approval the PR is merged into the existing entry: it adds one new version to that entry, which is Unverified. The entry keeps its public ID; no second entry is created. | Phase 2 |
+| FR-D5 | A PR is approved by the original author of the entry. No verifier approval is needed to merge. If the author is no longer active, a verifier in scope approves in their place. A PR opened by the entry author themselves is approved implicitly and merges immediately. Nobody approves or rejects their own PR otherwise. | Phase 2 |
+| FR-D6 | The approver can reject a PR with a reason; the reason is required. | Phase 2 |
+| FR-D7 | On approval the PR is merged into the existing entry: it adds one new version to that entry, which is Unverified and then follows the standard verification flow. The entry keeps its public ID; no second entry is created. | Phase 2 |
 | FR-D8 | After a merge the entry appears once everywhere (search, lists, references), showing the merged version as its current version. The previous version is not a separate entry or search result; it stays available only in the entry's history and through references to it. | Phase 2 |
 
 ### Outdated entries
@@ -358,15 +357,16 @@ Nine use cases cover the demo storyline end to end. UC-1 to UC-5 are MVP; UC-6 (
 
 1. C writes an entry similar to A's; the system shows a warning with A's entry.
 2. C chooses "Create pull request" and adds the new information to A's entry.
-3. A approves the PR, then a verifier in scope approves it.
-4. The PR is merged into A's entry as a new version, which is Unverified until verified.
+3. A approves the PR; no verifier approval is needed.
+4. The PR is merged into A's entry as a new version, which is Unverified like any new entry. Verifiers in scope are notified and verify it through the normal approval tab.
 
 **Acceptance criteria**
 
-- [ ] The approval order author → verifier cannot be skipped.
+- [ ] Only the entry author (or, if the author is inactive, a verifier in scope) can approve or reject the PR; the PR author cannot approve their own PR.
+- [ ] The author's approval merges the PR; no verifier approval is required.
 - [ ] After the merge there is still exactly one entry with the original public ID; no second entry is created.
 - [ ] Search and lists show that entry once, with the merged version as its current version and an Unverified tag.
-- [ ] The previous version is not shown as a separate result; it remains in history and old references still resolve and show that a newer version exists.
+- [ ] The previous version is not shown as a separate result; it remains in history and old references still resolve and show that a newer version exists. A superseded Unverified version no longer appears in the approval tab.
 - [ ] C is recorded as contributor of the fragment they added.
 - [ ] The diff shown to the approvers states who authored the change (C), when, and the change note.
 
@@ -482,8 +482,8 @@ Point values are set by Admins.
 - A vote is only valid as a complete usage record (who, when, where, correct or not).
 - No reputation from one's own actions.
 - Votes from the same small group of colleagues on one author are capped.
-- Verification authority is always checked server-side: against the department mapping for senior experts, and against the org hierarchy (own team only) for team leads and managers.
-- The PR approval order author → verifier is enforced; neither step can be skipped.
+- Verification authority is always checked server-side: against the department mapping for senior experts, and against the org hierarchy (own team only) for team leads and managers. The Manager/Admin fallback applies only while no one else is in scope for the entry.
+- PR decisions are checked server-side: only the entry author (or, if the author is inactive, a verifier in scope) can approve or reject, and never the PR author themselves. The merged version is Unverified and gets no shortcut around verification.
 - Version history and the audit log are append-only.
 
 ### BR-7 Contributors and responsibility
@@ -532,9 +532,9 @@ Nine screens cover all use cases; the team and project pages share one layout.
 | --- | --- | --- |
 | New entry in scope | Verifiers in scope (mapped senior experts, the author's team lead / manager) | In-app |
 | Entry verified or sent back | Author | In-app |
-| PR opened on an entry | Author | In-app |
-| PR approved by author | Verifiers in scope | In-app |
-| PR merged or rejected | PR author | In-app |
+| PR opened on an entry | Author (verifiers in scope instead, if the author is inactive) | In-app |
+| PR merged | PR author, entry author; verifiers in scope (the new version needs verification) | In-app |
+| PR rejected | PR author | In-app |
 | Outdated request submitted | Managers and higher in the author's reporting line | In-app |
 | Outdated request approved or rejected | Requester, author | In-app |
 | Incorrect vote reported | Author, last verifier | In-app |
@@ -543,11 +543,11 @@ Nine screens cover all use cases; the team and project pages share one layout.
 
 **MVP (hackathon PoC):** entries with tags and public IDs; Unverified / Verified / Outdated statuses; approval tab with role badges; voting; ranked search with a single search bar; keyword-based advisory duplicate warning; outdated requests with manager decision and restore; version snapshots; reputation; in-app notifications; demo user picker as sign-in.
 
-**Phase 2:** pull requests with author → verifier approval; embedding-based duplicate detection; contributor list, line-level contributors, contributor highlighting and change log with diffs; citation tracking; translations; e-mail, Teams and Slack notifications; analytics; employee, team and project entities with employee profile pages reachable from the entry page; JWT-based authentication and authorization with an OAuth2 authorization code flow; filter panel on the main search page.
+**Phase 2:** pull requests approved by the entry author (the merged version then follows normal verification); embedding-based duplicate detection; contributor list, line-level contributors, contributor highlighting and change log with diffs; citation tracking; translations; e-mail, Teams and Slack notifications; analytics; employee, team and project entities with employee profile pages reachable from the entry page; JWT-based authentication and authorization with an OAuth2 authorization code flow; filter panel on the main search page.
 
 ### Open questions
 
-- [ ] What happens to an unapproved PR when the author has left the company — does it go straight to a verifier?
+- [ ] Should a PR on an entry whose author has left the company really be decided by any single verifier in scope, or by a manager?
 - [ ] Is 12 months the right default for the "may be outdated" hint in payroll, or should it follow the yearly legal cycle?
 - [ ] Which identity provider will Peerpoint use (for example Entra ID or Okta), and does it expose employee ID and group claims we can map to roles?
 - [ ] Where do teams, projects and memberships come from long term: manual Admin maintenance, or a sync from the HR or org system?

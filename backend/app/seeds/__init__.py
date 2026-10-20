@@ -179,6 +179,15 @@ def seed_all() -> None:
     seed_auth_settings()
 
 
+def finish_legacy_pull_requests() -> None:
+    """PRs the old two-step rule left 'author_approved' are merged now (idempotent)."""
+    from app.services.pull_requests import finish_legacy_author_approved
+
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        finish_legacy_author_approved(db)
+
+
 AUTH_SETTINGS = [
     ("access_token_minutes", "15", "int", "Lifetime of an access token (JWT) in minutes"),
     ("refresh_token_hours", "8", "int", "Lifetime of a refresh token in hours"),

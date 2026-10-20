@@ -15,7 +15,8 @@ from app.ai_parser.cursor_cli import CursorCliError, Runner
 from app.ai_parser.schema import AgentMeme
 from app.ai_parser.sources import Source, load_chat, load_meeting, meme_day
 from app.ai_parser.validate import validate_reply
-from app.models import Category, SystemSetting, Tag, User
+from app.models import Category, Tag, User
+from app.services.parser_agent import setting as agent_setting
 from app.services.similarity import find_similar
 
 PROMPT_VERSION = "2026-10-20.2"
@@ -128,8 +129,7 @@ class Extraction:
 
 def extract(db: Session, source: Source, runner: Runner | None = None) -> Extraction:
     """Run the agent on one source and return its validated, enriched memes."""
-    setting = db.query(SystemSetting).filter(SystemSetting.key == "meme_confidence_threshold").first()
-    threshold = float(setting.value) if setting else 0.6
+    threshold = agent_setting(db, "parser_confidence_threshold")  # the Admin setting the import uses too
 
     memes, problems, session_id = _ask_agent(db, source, runner or cursor_cli.run_agent)
     rejected = [{"meme": p["meme"], "errors": p["errors"]} for p in problems]

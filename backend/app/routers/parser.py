@@ -1,7 +1,9 @@
 """Upload a meeting transcript or chat export; the AI parser turns it into memes in the background.
 
-Real uploads go to the database only (memes, authorship requests, notifications); the JSON files
-in backend/memes/ are the demo output for the mock sources.
+The Cursor agent extracts the memes (app/ai_parser); the Information overview's import
+(app/services/parser_agent.import_agent_output) stores them with one suggestion per author
+candidate and notifies the participants. Uploads never write files: the JSON in backend/memes/
+is the agent's output for the mock sources, kept for comparison.
 """
 import shutil
 import uuid
@@ -13,11 +15,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 from sqlalchemy.orm import Session, sessionmaker
 
 from app import config
-from app.ai_parser import pipeline, store
+from app.ai_parser import pipeline
 from app.ai_parser.sources import Source, load_chat, load_meeting, slug
 from app.database import get_db
 from app.deps.auth import get_current_user
-from app.models import MemeSource, User
+from app.models import Source as StoredSource, User
+from app.services.parser_agent import import_agent_output
 
 router = APIRouter(prefix="/parser", tags=["parser"])
 
@@ -31,12 +34,23 @@ def _process(run_id: str, source: Source, upload_dir: Path, session_factory: ses
     db = session_factory()
     try:
         extraction = pipeline.extract(db, source)
-        saved = store.save_extraction(db, extraction, uploaded_by_id=run["user_id"])
+        stored = import_agent_output(
+            db,
+            kind=source.type,
+            title=source.title,
+            date_from=source.meeting_date or source.date_from,
+            date_to=source.date_to,
+            participant_emails=list(source.participants),
+            memes=extraction.memes,
+            lines=source.lines(),
+            uploader=db.get(User, run["user_id"]),
+        )
+        db.commit()
     except Exception as exc:  # any failure is reported on the run; the upload is kept for a retry
         db.rollback()
         run.update(status="failed", error=str(exc))
     else:
-        run.update(status="done", memes=len(saved.memes), rejected=len(extraction.rejected))
+        run.update(status="done", parser_source_id=stored.id, memes=len(stored.memes), rejected=len(extraction.rejected))
         shutil.rmtree(upload_dir, ignore_errors=True)  # BR-M7: the raw source is not kept after extraction
     finally:
         db.close()
@@ -75,7 +89,12 @@ def upload_source(
             if user.email not in source.participants:
                 raise HTTPException(status_code=403, detail="Only members of the chat can import it")
             pipeline.only_known_participants(db, source)
-        if db.query(MemeSource).filter(MemeSource.key == source.id).first():
+        already = db.query(StoredSource).filter(
+            StoredSource.kind == source.type,
+            StoredSource.title == source.title,
+            StoredSource.date_from == (source.meeting_date or source.date_from),
+        ).first()
+        if already:
             raise HTTPException(status_code=409, detail=f"{source.title} has already been processed")
     except HTTPException:
         shutil.rmtree(upload_dir, ignore_errors=True)
@@ -91,6 +110,7 @@ def upload_source(
         "source_id": source.id,
         "user_id": user.id,
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "parser_source_id": None,
         "memes": None,
         "rejected": None,
         "error": None,

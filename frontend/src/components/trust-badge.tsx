@@ -12,7 +12,7 @@ export function TrustBadge({ status, verifierRole }: TrustBadgeProps) {
     return (
       <Badge variant="verified">
         <CheckCircle2 className="h-3.5 w-3.5" />
-        Verified by {verifierRole || "Verifier"}
+        {verifierRole ? `Verified by ${verifierRole}` : "Verified"}
       </Badge>
     )
   }

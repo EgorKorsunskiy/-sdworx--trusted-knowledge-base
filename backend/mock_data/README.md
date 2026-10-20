@@ -8,7 +8,8 @@ Demo data loaded by `app/seeds` on startup. Seeding runs only on an empty databa
 | `teams.json` | `name`, `department`, `description`, `lead`, `members` (`user`, `role`, `primary`) | `lead` / `members[].user` → user `email` |
 | `users.json` | `email`, `display_name`, `department`, `title`, `country`, `roles`, optional `expert_departments` | — |
 | `projects.json` | Internal projects: `name`, `description`, `status` (`active` / `completed`), `lead`, `members` (`user`, `role`, `start_date`, optional `end_date`) | `lead` / `members[].user` → user `email` |
-| `settings.json` | `key`, `value`, `value_type`, `description` | — |
+| `companies.json` | Client companies: `name`, `country`, `client_projects` (names; a client-project name never contains the client's name) | — |
+| `settings.json` | `key`, `value`, `value_type`, `description`; includes the AI parser's agent settings (`parser_confidence_threshold`, `parser_raw_retention_days`) | — |
 | `entries.json` | `public_id`, `scope`, `department`, `country`, `category`, `author`, optional `team`, `tags`, `versions` | `category` → category `name`, `author` / `edited_by` / `verifier` → user `email`, `team` → team `name` |
 | `history_demo.json` | Entries in the `entries.json` format, without `public_id` (generated), for the change log demo | as `entries.json` |
 
@@ -17,11 +18,13 @@ Demo data loaded by `app/seeds` on startup. Seeding runs only on an empty databa
 - An entry without `team` belongs to its author's primary team, so the author's team lead and manager can verify it.
 - `versions` are numbered in list order; each takes `title`, `body`, optional `justification`, `status` (default `Unverified`), `change_note`, `edited_by` (default: the entry author), optional `created_days_ago` (default: now) and optional `verifications` (`verifier`, `role`, `days_ago`).
 - Projects and settings are also added to an already-seeded database when they are missing; `history_demo.json` is seeded only when the `seed_history_demo` setting is on (default).
+- `entries` may also set `basis` (`responsible` default, or `relayed` with `basis_source`) for the author's entry in the Contacts block.
+- Companies and settings are also added to an already-seeded database when they are missing.
 - A missing file is treated as an empty list.
 
 ## Sources for the AI parser
 
-`sources/` holds mock Teams meeting transcripts and group chat exports for the AI parser, one per [mock scenario](../../specs/ai-parser/MOCK_SCENARIOS.md). The seeder does not load them.
+`sources/` holds mock Teams meeting transcripts and group chat exports for the AI parser, one per [mock scenario](../../specs/ai-parser/MOCK_SCENARIOS.md). On startup the stub parser agent (`app/services/parser_agent.py`, flag `seed_parser_demo`) imports each source through its `expected` file as if it were an agent's output, so the Information overview has data. It checks the output like a real agent would be checked (speaker is a participant, a quote exists, confidence above the Admin threshold) and is idempotent per source `id`.
 
 | Path | Content |
 |---|---|

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { PageHeader } from "@/components/page-header"
+import { BasisFields, basisIsValid, emptyBasis, type BasisValue } from "@/components/basis-fields"
 
 type Prefill = { title?: string; body?: string; justification?: string }
 
@@ -21,6 +22,7 @@ export function SuggestChangePage() {
   const [body, setBody] = useState("")
   const [justification, setJustification] = useState("")
   const [changeNote, setChangeNote] = useState("")
+  const [basis, setBasis] = useState<BasisValue>(emptyBasis)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
@@ -47,7 +49,7 @@ export function SuggestChangePage() {
     title.trim() !== cur.title.trim() ||
     body.trim() !== (cur.body ?? "").trim() ||
     justification.trim() !== (cur.justification ?? "").trim()
-  const canSubmit = changed && changeNote.trim().length > 0 && !saving
+  const canSubmit = changed && changeNote.trim().length > 0 && basisIsValid(basis) && !saving
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,6 +62,8 @@ export function SuggestChangePage() {
         proposed_body: body.trim(),
         proposed_justification: justification.trim() || undefined,
         change_note: changeNote.trim(),
+        basis: basis.basis as "responsible" | "relayed",
+        basis_source: basis.source.trim() || undefined,
       })
       navigate(`/pull-requests/${pr.id}`)
     } catch (err: any) {
@@ -108,6 +112,12 @@ export function SuggestChangePage() {
             onChange={(e) => setChangeNote(e.target.value)}
             placeholder="What did you change and why?"
           />
+        </div>
+        <div>
+          <BasisFields value={basis} onChange={setBasis} idPrefix="pr-basis" />
+          <p className="mt-1.5 text-xs text-stone-500">
+            Once the pull request is merged you appear in the entry's Contacts with this basis.
+          </p>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2">
           {!changed && <span className="text-xs text-stone-500">Change something to enable submit.</span>}

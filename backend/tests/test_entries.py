@@ -34,6 +34,7 @@ def test_create_entry_and_public_id(client):
             "category_id": 1,
             "country": "BE",
             "scope": "eu",
+            "basis": "responsible",
             "keywords": ["travel", "contractor"],
         },
     )
@@ -85,6 +86,7 @@ def _payload(**extra):
         "category_id": 1,
         "country": "BE",
         "scope": "country",
+        "basis": "responsible",
         **extra,
     }
 

@@ -7,6 +7,7 @@ import { DiffView } from "@/components/diff-view"
 import { Link, useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { PRStatusBadge } from "@/components/pr-status-badge"
+import { TagList } from "@/components/tag-chip"
 
 export function ApprovalsPage() {
   const navigate = useNavigate()
@@ -79,6 +80,12 @@ export function ApprovalsPage() {
                     <Link to={`/people/${p.author.id}`} className="hover:underline">{p.author.display_name}</Link>
                     {" "}· {p.step === "author" ? "Your approval as entry author" : "Entry author inactive: your approval as verifier"}
                   </p>
+                  {p.basis && (
+                    <p className="mt-0.5 text-xs text-stone-500">
+                      Their basis: {p.basis === "responsible" ? "Responsible" : "Relayed"}
+                      {p.basis === "relayed" && p.basis_source ? ` · source: ${p.basis_source}` : ""}
+                    </p>
+                  )}
                 </div>
                 <Button size="sm" onClick={() => navigate(`/pull-requests/${p.id}`)}>Review</Button>
               </div>
@@ -104,6 +111,18 @@ export function ApprovalsPage() {
                 <TrustBadge status={item.version.status} />
               </div>
               <p className="mt-2 text-sm text-stone-700 line-clamp-3">{item.version.body}</p>
+              <TagList tags={item.entry.tags ?? []} className="mt-2" />
+              {(item.entry.contacts ?? []).length > 0 && (
+                <ul className="mt-2 space-y-0.5 text-xs text-stone-600">
+                  {item.entry.contacts.map((c: any) => (
+                    <li key={c.user.id}>
+                      <Link to={`/people/${c.user.id}`} className="font-medium hover:underline">{c.user.display_name}</Link>
+                      {": "}{c.basis === "responsible" ? "Responsible" : "Relayed"}
+                      {c.basis === "relayed" && c.source ? ` · source: ${c.source}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {typeof diffs[item.version.id] === "object" && diffs[item.version.id] !== null && (
                 <div className="mt-3">
                   <DiffView diff={diffs[item.version.id] as EntryDiff} />

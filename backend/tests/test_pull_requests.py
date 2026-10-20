@@ -22,6 +22,7 @@ def _open(client, hdr, **over):
         "proposed_body": "First sentence is new. Second sentence is also new.",
         "proposed_justification": "Because the law changed.",
         "change_note": "Update after law change",
+        "basis": "responsible",
     }
     body.update(over)
     return client.post(f"/entries/{PID}/pull-requests", json=body, headers=hdr)
@@ -77,7 +78,7 @@ def test_open_and_validation(client):
     assert client.post(f"/entries/{PID}/pull-requests", json=bad, headers=hdr).status_code == 422
     assert _open(client, hdr, change_note="   ").status_code == 422
     assert _open(client, hdr, proposed_body="x" * 20001).status_code == 422
-    assert client.post("/entries/NOPE/pull-requests", json={"change_note": "n", "proposed_title": "t"},
+    assert client.post("/entries/NOPE/pull-requests", json={"change_note": "n", "proposed_title": "t", "basis": "responsible"},
                        headers=hdr).status_code == 404
 
 
@@ -373,13 +374,13 @@ def test_entry_nobody_can_verify_still_merges_on_author_approval(client):
     made = client.post(
         "/entries",
         headers=_hdr(client, ADMIN),
-        json={"title": "Platform runbook", "body": "Restart the thing.", "category_id": 1, "country": "BE", "scope": "country"},
+        json={"title": "Platform runbook", "body": "Restart the thing.", "category_id": 1, "country": "BE", "scope": "country", "basis": "responsible"},
     ).json()
     pid = made["public_id"]
     pr = client.post(
         f"/entries/{pid}/pull-requests",
         headers=_hdr(client, B),
-        json={"proposed_body": "Restart the thing twice.", "change_note": "clarify"},
+        json={"proposed_body": "Restart the thing twice.", "change_note": "clarify", "basis": "responsible"},
     ).json()
     r = _approve(client, ADMIN, pr["id"])
     assert r.status_code == 200 and r.json()["status"] == "merged"

@@ -8,6 +8,8 @@ from app.database import Base, engine
 from app.services.public_id import make_public_id
 from app.models import (
     Category,
+    ClientProject,
+    Company,
     Entry,
     EntryScope,
     EntryVersion,
@@ -37,12 +39,10 @@ def _load(name: str) -> list[dict]:
 
 
 def _tag(db: Session, name: str) -> Tag:
-    tag = db.query(Tag).filter(Tag.name == name).first()
-    if tag is None:
-        tag = Tag(name=name)
-        db.add(tag)
-        db.flush()
-    return tag
+    """Shared tag entity for a mock-data tag name (normalized; 'kind:value' names are automatic)."""
+    from app.services.tags import AUTOMATIC, KEYWORD, get_or_create_tag, is_automatic_name
+
+    return get_or_create_tag(db, name, AUTOMATIC if is_automatic_name(name) else KEYWORD)
 
 
 def _add_entry(db: Session, data: dict, users: dict[str, User], now: datetime) -> Entry:
@@ -74,9 +74,18 @@ def _add_entry(db: Session, data: dict, users: dict[str, User], now: datetime) -
     )
     db.add(entry)
     db.flush()
+    # The author is a contact with the basis from the mock data (default: Responsible)
+    from app.services.contacts import add_contact
+
+    add_contact(db, entry, author.id, data.get("basis", "responsible"), data.get("basis_source"), role="author")
 
     for name in data.get("tags", []):
-        entry.tags.append(_tag(db, name))
+        tag = _tag(db, name)
+        if tag not in entry.tags:
+            entry.tags.append(tag)
+    from app.services.tags import add_auto_tags
+
+    add_auto_tags(db, entry, author)  # country, date, author, department, role (FR-E2)
 
     for number, v in enumerate(versions, start=1):
         version = EntryVersion(
@@ -160,6 +169,55 @@ def seed_all() -> None:
 
     seed_people()
     seed_settings()
+    seed_companies()
+    backfill_contacts()
+
+
+def backfill_contacts() -> None:
+    """Authors of entries from before authorship bases existed become Responsible contacts (idempotent)."""
+    from app.services.contacts import backfill_author_contacts
+
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        backfill_author_contacts(db)
+
+
+def seed_parser_demo() -> None:
+    """Run the stub parser agent over the mock meetings and chats (idempotent; Admins' agent settings apply)."""
+    from app.services.parser_agent import load_mock_sources, purge_expired_sources
+
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        if db.query(User).filter(User.email == "employee.a@sdworx.example").first() is None:
+            return  # not the demo dataset
+        count = load_mock_sources(db)
+        purge_expired_sources(db)
+        if count:
+            print(f"Imported {count} mock sources through the stub parser agent.")
+
+
+def seed_companies() -> None:
+    """Client companies and their client projects from companies.json (idempotent, fills an already-seeded DB)."""
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        if db.query(Company).first():
+            return
+        for data in _load("companies"):
+            company = Company(name=data["name"], country=data.get("country"))
+            db.add(company)
+            db.flush()
+            for name in data.get("client_projects", []):
+                db.add(ClientProject(name=name, company_id=company.id))
+        db.commit()
+
+
+def normalize_tags() -> None:
+    """Bring tags created before tags were entities in line (names, types, country tags); idempotent."""
+    from app.services.tags import normalize_existing_tags
+
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        normalize_existing_tags(db)
 
 
 def finish_legacy_pull_requests() -> None:
@@ -177,6 +235,8 @@ def seed_settings() -> None:
     This includes the token lifetimes (access_token_minutes, refresh_token_hours) Admins can change."""
     Base.metadata.create_all(bind=engine)
     with Session(engine) as db:
+        # The AI parser has no usefulness votes any more: drop their threshold from older databases
+        db.query(SystemSetting).filter(SystemSetting.key == "parser_useful_vote_threshold").delete()
         existing = {s.key for s in db.query(SystemSetting).all()}
         for data in _load("settings"):
             if data["key"] not in existing:
@@ -245,36 +305,6 @@ def seed_history_demo() -> None:
         if public_id:
             print(f"Seeded history demo entry {public_id}.")
 
-
-
-def seed_demo_memes() -> None:
-    """Demo memes from backend/memes/ (agent output for the mock sources) into the database (idempotent).
-
-    Real uploads never touch these files: the parser stores their memes in the database directly."""
-    from app import config
-    from app.ai_parser.store import save_memes
-    from app.models import MemeSource
-
-    groups = [[f] for f in sorted((config.MEMES_DIR / "meetings").glob("*.json"))]
-    groups += [sorted(d.glob("*.json")) for d in sorted((config.MEMES_DIR / "chats").glob("*")) if d.is_dir()]
-    Base.metadata.create_all(bind=engine)
-    with Session(engine) as db:
-        for files in filter(None, groups):
-            payloads = [json.loads(f.read_text(encoding="utf-8")) for f in files]
-            head = payloads[0]["source"]
-            if db.query(MemeSource).filter(MemeSource.key == head["id"]).first():
-                continue
-            memes = [{**m, **({"day": p["source"]["day"]} if "day" in p["source"] else {})} for p in payloads for m in p["memes"]]
-            save_memes(
-                db,
-                key=head["id"], type=head["type"], title=head["title"],
-                participants=[x["email"] for x in payloads[0]["participants"]], memes=memes,
-                meeting_date=date.fromisoformat(head["date"]) if head.get("date") else None,
-                date_from=date.fromisoformat(head["date_from"]) if head.get("date_from") else None,
-                date_to=date.fromisoformat(head["date_to"]) if head.get("date_to") else None,
-                generator=payloads[0].get("generator"),
-            )
-            print(f"Seeded demo memes of {head['id']}.")
 
 if __name__ == "__main__":
     seed_all()

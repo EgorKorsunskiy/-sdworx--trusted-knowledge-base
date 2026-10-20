@@ -58,6 +58,10 @@ class Source:
             "date_to": self.date_to.isoformat(),
         }
 
+    def lines(self) -> list[dict]:
+        """The conversation in the form the Information overview cuts quote context from."""
+        return [{"at": u.at, "speaker": u.speaker, "text": " ".join(u.text.split())} for u in self.units if not u.deleted]
+
     def render(self) -> str:
         return "\n".join(u.line for u in self.units) + "\n"
 

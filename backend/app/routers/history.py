@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps.auth import get_current_user
-from app.models import Entry, EntryVersion, User, Verification
+from app.models import Entry, EntryContactChange, EntryVersion, User, Verification
 from app.schemas import ContributorsOut, EntryDiffOut, HistoryItemOut
 from app.services.blame import VersionSnap, compute_blame, contributor_stats
 from app.services.permissions import contributor_role_badge, entry_contributor_ids
@@ -17,6 +17,7 @@ def _get_entry(db: Session, public_id: str) -> Entry:
         db.query(Entry)
         .options(
             joinedload(Entry.versions).joinedload(EntryVersion.edited_by),
+            joinedload(Entry.contacts),
             joinedload(Entry.versions)
             .joinedload(EntryVersion.verifications)
             .joinedload(Verification.verifier),
@@ -88,6 +89,35 @@ def entry_history(
     return list(reversed(items))
 
 
+@router.get("/{public_id}/basis-log")
+def entry_basis_log(
+    public_id: str,
+    db: Session = Depends(get_db),
+    _user: User = Depends(get_current_user),
+) -> list[dict]:
+    """Changes of authorship basis, newest first. They are part of the change log but make no new version (FR-K2)."""
+    entry = _get_entry(db, public_id)
+    rows = (
+        db.query(EntryContactChange)
+        .options(joinedload(EntryContactChange.user))
+        .filter(EntryContactChange.entry_id == entry.id)
+        .order_by(EntryContactChange.created_at.desc(), EntryContactChange.id.desc())
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "created_at": r.created_at,
+            "user": {"id": r.user.id, "display_name": r.user.display_name},
+            "old_basis": r.old_basis,
+            "old_source": r.old_source,
+            "new_basis": r.new_basis,
+            "new_source": r.new_source,
+        }
+        for r in rows
+    ]
+
+
 @router.get("/{public_id}/versions/{version_number}/diff", response_model=EntryDiffOut)
 def entry_version_diff(
     public_id: str,
@@ -135,7 +165,10 @@ def entry_contributors(
     ]
     lines = compute_blame(snaps)
     stats = contributor_stats(lines)
-    ids = [s["user_id"] for s in stats]
+    # Co-authors added through the AI parser are contributors without a line until they edit one (BR-7, BR-M3)
+    with_lines = {s["user_id"] for s in stats}
+    co_authors = [c.user_id for c in entry.contacts if c.role == "co_author" and c.user_id not in with_lines]
+    ids = [s["user_id"] for s in stats] + co_authors
     users = {}
     if ids:
         rows = db.query(User).options(joinedload(User.roles)).filter(User.id.in_(ids)).all()
@@ -173,5 +206,23 @@ def entry_contributors(
             }
             for s in stats
             if (u := users.get(s["user_id"])) is not None
+        ] + [
+            {
+                "user": {
+                    "id": u.id,
+                    "display_name": u.display_name,
+                    "title": u.title,
+                    "department": u.department,
+                    "email": u.email,
+                    "reputation": u.reputation or 0,
+                    "role_badge": contributor_role_badge(u),
+                },
+                "fragment_indexes": [],
+                "fragment_count": 0,
+                "first_version": 1,
+                "last_version": target,
+            }
+            for uid in co_authors
+            if (u := users.get(uid)) is not None
         ],
     }

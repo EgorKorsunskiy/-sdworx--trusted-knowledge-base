@@ -153,6 +153,13 @@ export function PullRequestPage() {
           <PRStatusBadge status={pr.status} />
         </div>
         {pr.change_note && <p className="mt-3 text-sm italic text-stone-600">{pr.change_note}</p>}
+        {pr.basis && (
+          <p className="mt-2 text-xs text-stone-500">
+            {pr.author.display_name}'s basis for this change: {pr.basis === "responsible" ? "Responsible" : "Relayed"}
+            {pr.basis === "relayed" && pr.basis_source ? ` · source: ${pr.basis_source}` : ""}. They become a contact of the
+            entry with it once the pull request is merged.
+          </p>
+        )}
 
         {pr.is_stale && (
           <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-600/20">

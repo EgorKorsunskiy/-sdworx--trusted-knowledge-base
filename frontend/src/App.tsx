@@ -16,6 +16,8 @@ import { TeamPage } from "@/pages/team-page"
 import { ProjectPage } from "@/pages/project-page"
 import { SuggestChangePage } from "@/pages/suggest-change-page"
 import { PullRequestPage } from "@/pages/pull-request-page"
+import { InformationPage } from "@/pages/information-page"
+import { InformationDetailPage } from "@/pages/information-detail-page"
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -36,7 +38,10 @@ function AppRoutes() {
             <AppShell>
               <Routes>
                 <Route path="/" element={<SearchPage />} />
+                <Route path="/search" element={<SearchPage />} />
                 <Route path="/add" element={<AddEntryPage />} />
+                <Route path="/information" element={<InformationPage />} />
+                <Route path="/information/memes/:id" element={<InformationDetailPage />} />
                 <Route path="/entries/:publicId" element={<EntryPage />} />
                 <Route path="/entries/:publicId/suggest" element={<SuggestChangePage />} />
                 <Route path="/pull-requests/:id" element={<PullRequestPage />} />

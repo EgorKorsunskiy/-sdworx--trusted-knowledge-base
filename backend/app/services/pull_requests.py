@@ -149,6 +149,11 @@ def merge(db: Session, pr: PullRequest, verifier: User) -> EntryVersion:
     entry.updated_at = now
     if pr.author_id != entry.author_id:
         award(db, pr.author, "reputation_pr_merged")
+        if pr.basis:
+            # The PR author becomes a contact with the basis they stated (FR-K11)
+            from app.services.contacts import add_contact
+
+            add_contact(db, entry, pr.author_id, pr.basis, pr.basis_source, role="contributor")
     db.flush()
     db.expire(entry, ["versions"])  # so entry.versions[-1] is the merged version for later checks
     return version

@@ -10,6 +10,7 @@ from app.ai_parser.cursor_cli import AgentReply, CursorCliError
 from app.ai_parser.schema import AgentMeme
 from app.ai_parser.sources import load_chat, meme_day, parse_vtt
 from app.ai_parser.validate import check_meme, validate_reply
+from app.models import Source as StoredSource
 from tests.conftest import login
 
 SOURCES = config.MOCK_DATA_DIR / "sources"
@@ -204,7 +205,7 @@ def test_cursor_cli_failures(monkeypatch, tmp_path):
         cursor_cli.parse_answer("I could not find any memes.")
 
 
-def test_upload_meeting_stores_memes_in_the_database(client, monkeypatch, tmp_path):
+def test_upload_meeting_stores_memes_in_the_database(client, db_session, monkeypatch, tmp_path):
     monkeypatch.setattr(config, "MEMES_DIR", tmp_path)
     monkeypatch.setattr(cursor_cli, "run_agent", fake_runner({"memes": agent_memes("m1")}))
     team_lead = login(client, 5)
@@ -222,8 +223,13 @@ def test_upload_meeting_stores_memes_in_the_database(client, monkeypatch, tmp_pa
     assert not (tmp_path / "_uploads" / run_id).exists()  # the raw transcript is not kept
     assert client.get(f"/parser/runs/{run_id}", headers=login(client, 2)).status_code == 404
 
-    mine = client.get("/memes", headers=team_lead).json()
-    assert [m["my_request"]["status"] for m in mine] == ["pending"]
+    # Stored by the Information overview's import: one suggestion per author candidate
+    stored = db_session.query(StoredSource).filter(StoredSource.title == "Payroll BE weekly").one()
+    assert run["parser_source_id"] == stored.id and len(stored.memes) == 3
+    owners = sorted((s.user_id, s.role, s.state) for m in stored.memes for s in m.suggestions)
+    assert owners == [(1, "speaker", "pending"), (2, "speaker", "pending"), (3, "confirmer", "pending"),
+                      (5, "speaker", "pending"), (6, "confirmer", "pending")]
+    db_session.close()
 
     again = client.post("/parser/sources", headers=team_lead, files={"file": ("transcript.vtt", vtt, "text/vtt")}, data=form)
     assert again.status_code == 409

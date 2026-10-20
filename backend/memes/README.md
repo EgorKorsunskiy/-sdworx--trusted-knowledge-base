@@ -1,8 +1,8 @@
 # Memes
 
-**Demo output** of the AI parser (`app/ai_parser`, spec: [specs/ai-parser](../../specs/ai-parser/FUNCTIONAL_SPEC.md)) for the mock sources in `mock_data/sources/`. The Cursor CLI reads one meeting transcript or one group chat; the backend validates its answer and writes the memes here. Only mocks belong here: these files are committed so the demo works without re-running the agent, and on startup they are loaded into the database (`seed_demo_memes`, once per source), where their authorship requests and notifications are created.
+**Agent output** of the AI parser (`app/ai_parser`, spec: [specs/ai-parser](../../specs/ai-parser/FUNCTIONAL_SPEC.md)) for the mock sources in `mock_data/sources/`. The Cursor CLI reads one meeting transcript or one group chat; the backend validates its answer and writes the memes here, to compare them with the expected memes (`python -m app.ai_parser.eval`). Only mocks belong here.
 
-Real uploads (`POST /parser/sources`) never write files: their memes go straight to the database.
+These files are not loaded into the database: the demo is filled from the expected memes by the stub agent (`seed_parser_demo`), and real uploads (`POST /parser/sources`) go straight to the database through the Information overview's import.
 
 ```
 memes/
@@ -33,4 +33,4 @@ python -m app.ai_parser m1 c2            # some of them
 python -m app.ai_parser.eval             # compare the files here with mock_data/sources/expected/
 ```
 
-Requires the Cursor CLI (`agent`), signed in with `agent login` or `CURSOR_API_KEY`. After regenerating, delete `backend/peerpoint.db` so the new files are loaded on the next start.
+Requires the Cursor CLI (`agent`), signed in with `agent login` or `CURSOR_API_KEY`.

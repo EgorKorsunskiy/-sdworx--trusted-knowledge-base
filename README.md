@@ -150,14 +150,6 @@ Instead of `agent login`, export `CURSOR_API_KEY` in the shell that starts the b
 cd backend && .venv/bin/python -m app.ai_parser --all
 ```
 
-This writes the demo memes for all mock sources into `backend/memes/`; they are loaded into the database on the next start.
+This writes the agent's memes for all mock sources into `backend/memes/`, to compare them with the expected memes (`python -m app.ai_parser.eval`). The demo database is filled from the expected memes instead (`seed_parser_demo`).
 
-Flow for real sources: a participant uploads the transcript or chat export with `POST /parser/sources` (multipart: `file`, `type` = `meeting` | `chat`, and for meetings `title`, `date`, `participant_ids`); the agent runs in the background (`GET /parser/runs/{id}` shows the status); the memes are stored in the database, every speaker and confirmer gets an authorship request, and all participants a notification. Then:
-
-| Endpoint | Purpose |
-|---|---|
-| `GET /memes?tab=mine\|colleagues&type=meeting&type=chat` | Memes of the user's meetings and chats: own (speaker or confirmer) or colleagues' |
-| `GET /memes/requests/pending` | Memes waiting for the user's answer |
-| `GET /memes/{id}` | One meme with its candidates and their answers (participants only) |
-| `POST /memes/{id}/accept` | `{"basis": "responsible"}` or `{"basis": "relayed", "source": "…"}`; the first acceptance moves the meme to Preparing |
-| `POST /memes/{id}/decline` | `{"reason": "not_relevant" \| "incorrect" \| "not_mine"}`; when every candidate declined, the meme is Declined |
+Flow for real sources: a participant uploads the transcript or chat export with `POST /parser/sources` (multipart: `file`, `type` = `meeting` | `chat`, and for meetings `title`, `date`, `participant_ids`); the agent runs in the background (`GET /parser/runs/{id}` shows the status); the memes are stored through the Information overview's import, every speaker and confirmer gets their own suggestion, and all participants a notification. The suggestions are then decided on the Information overview page (`/information`).

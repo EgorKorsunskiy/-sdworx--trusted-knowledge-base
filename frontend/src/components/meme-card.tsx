@@ -481,6 +481,19 @@ export function MemeCard({
         </div>
       )}
 
+      {/* Others tab list: only the outcomes that exist, as small tags; the full decisions are on the detail page */}
+      {!detail && item.type === "meme" && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5">
+          {others
+            .filter((s) => s.state === "accepted" || s.state === "declined" || s.state === "postponed")
+            .map((s) => (
+              <Badge key={s.id} variant={s.state === "accepted" ? "success" : s.state === "declined" ? "danger" : "warning"}>
+                {s.owner.display_name}: {s.state === "accepted" ? "Approved" : s.state === "declined" ? "Rejected" : "Postponed"}
+              </Badge>
+            ))}
+        </div>
+      )}
+
       {/* The other candidates and their decisions are part of the details */}
       {detail && others.length > 0 && (
         <div className="mt-3">

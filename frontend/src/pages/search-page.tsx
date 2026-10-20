@@ -88,7 +88,7 @@ function TagFilter({ selected, onToggle }: { selected: string[]; onToggle: (name
         }}
         placeholder="Find a tag…"
         aria-label="Find a tag"
-        className="mt-1.5"
+        className="max-w-xs"
       />
       {suggestions.length > 0 && (
         <ul className="mt-1 max-h-40 overflow-y-auto rounded-lg bg-white text-sm ring-1 ring-stone-200">
@@ -237,46 +237,67 @@ export function SearchPage() {
 
       {panelOpen && (
         <div className="mt-3 card">
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Filters</h2>
+            {activeCount > 0 ? (
+              <button type="button" onClick={clearAll} className="text-xs font-medium text-stone-500 hover:text-stone-900">
+                Clear all ({activeCount})
+              </button>
+            ) : (
+              <span className="text-xs text-stone-400">Several values of one filter match any of them</span>
+            )}
+          </div>
+          <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
             {SEARCH_MULTI_KEYS.map((key) => {
               const options = optionsFor(key, facets)
               const selected = params.getAll(key)
-              if (key === "tag") {
-                return (
-                  <fieldset key={key}>
-                    <legend className="label">{GROUP_TITLES[key]}</legend>
-                    <TagFilter selected={selected} onToggle={(name) => toggleValue("tag", name)} />
-                  </fieldset>
-                )
-              }
+              if (key !== "tag" && options.length === 0) return null // nothing to pick from yet
               return (
-                <fieldset key={key}>
-                  <legend className="label">{GROUP_TITLES[key]}</legend>
-                  <div className="mt-1.5 max-h-36 space-y-1 overflow-y-auto pr-1">
-                    {options.length === 0 && <p className="text-xs text-stone-400">No options</p>}
-                    {options.map((o) => (
-                      <label key={o.value} className="flex items-center gap-2 text-sm text-stone-700">
-                        <input
-                          type="checkbox"
-                          checked={selected.includes(o.value)}
-                          onChange={() => toggleValue(key, o.value)}
-                          className="h-4 w-4 rounded border-stone-300 accent-stone-900"
-                        />
-                        {o.label}
-                      </label>
-                    ))}
-                  </div>
+                <fieldset key={key} className={key === "tag" ? "sm:col-span-2" : ""}>
+                  <legend className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-stone-500">
+                    {GROUP_TITLES[key]}
+                    {selected.length > 0 && (
+                      <span className="rounded-full bg-stone-900 px-1.5 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-white">
+                        {selected.length}
+                      </span>
+                    )}
+                  </legend>
+                  {key === "tag" ? (
+                    <TagFilter selected={selected} onToggle={(name) => toggleValue("tag", name)} />
+                  ) : (
+                    <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto pr-1">
+                      {options.map((o) => {
+                        const on = selected.includes(o.value)
+                        return (
+                          <button
+                            key={o.value}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() => toggleValue(key, o.value)}
+                            className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition-colors ${
+                              on
+                                ? "bg-stone-900 text-white ring-stone-900"
+                                : "bg-white text-stone-700 ring-stone-200 hover:bg-stone-50"
+                            }`}
+                          >
+                            {o.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </fieldset>
               )
             })}
-            <fieldset>
-              <legend className="label">Last updated</legend>
-              <div className="mt-1.5 space-y-2">
+            <fieldset className="sm:col-span-2">
+              <legend className="mb-2 text-xs font-medium uppercase tracking-wide text-stone-500">Last updated</legend>
+              <div className="flex flex-wrap items-center gap-3">
                 {SEARCH_DATE_KEYS.map((key) => (
                   <label key={key} className="flex items-center gap-2 text-sm text-stone-600">
-                    <span className="w-24 shrink-0">{key === "updated_from" ? "From" : "Until"}</span>
+                    <span className="w-10 shrink-0 text-xs text-stone-500">{key === "updated_from" ? "From" : "Until"}</span>
                     <Input
                       type="date"
+                      className="w-auto"
                       value={params.get(key) ?? ""}
                       onChange={(e) => setDate(key, e.target.value)}
                     />

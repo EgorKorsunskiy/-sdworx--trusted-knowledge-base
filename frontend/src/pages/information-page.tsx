@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, MessageCircle, Users } from "lucide-react"
 import { api, type OverviewCounts, type OverviewPage, type OverviewSection } from "@/lib/api"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
@@ -13,8 +13,8 @@ const SECTIONS: { id: OverviewSection; label: string }[] = [
   { id: "coauthor", label: "Co-author requests" },
 ]
 const KINDS = [
-  { id: "meeting", label: "Meetings" },
-  { id: "chat", label: "Group chats" },
+  { id: "meeting", label: "Meetings", icon: Users },
+  { id: "chat", label: "Group chats", icon: MessageCircle },
 ]
 const EMPTY: Record<OverviewSection, string> = {
   to_decide: "Nothing to decide right now.",
@@ -154,46 +154,59 @@ export function InformationPage() {
             )}
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-3 pb-2 text-sm">
-          {KINDS.map((k) => (
-            <label key={k.id} className="flex items-center gap-1.5 text-stone-600">
-              <input
-                type="checkbox"
-                checked={kinds.includes(k.id)}
-                onChange={() => toggleKind(k.id)}
-                className="h-4 w-4 rounded border-stone-300 accent-stone-900"
-              />
-              {k.label}
-            </label>
-          ))}
-        </div>
       </div>
 
-      {tab === "yours" && (
-        <div role="tablist" aria-label="Sections" className="mt-4 flex flex-wrap gap-2">
-          {SECTIONS.map((s) => (
-            <button
-              key={s.id}
-              role="tab"
-              type="button"
-              aria-selected={section === s.id}
-              onClick={() => setSection(s.id)}
-              className={`rounded-full px-3 py-1 text-sm ring-1 ring-inset ${
-                section === s.id ? "bg-stone-900 text-white ring-stone-900" : "bg-white text-stone-700 ring-stone-200 hover:bg-stone-50"
-              }`}
-            >
-              {s.label}
-              {counts && <span className={`ml-1.5 text-xs ${section === s.id ? "text-stone-300" : "text-stone-400"}`}>{counts[s.id]}</span>}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        {tab === "yours" ? (
+          <div role="tablist" aria-label="Sections" className="flex flex-wrap gap-2">
+            {SECTIONS.map((s) => (
+              <button
+                key={s.id}
+                role="tab"
+                type="button"
+                aria-selected={section === s.id}
+                onClick={() => setSection(s.id)}
+                className={`rounded-full px-3 py-1 text-sm ring-1 ring-inset ${
+                  section === s.id ? "bg-stone-900 text-white ring-stone-900" : "bg-white text-stone-700 ring-stone-200 hover:bg-stone-50"
+                }`}
+              >
+                {s.label}
+                {counts && <span className={`ml-1.5 text-xs ${section === s.id ? "text-stone-300" : "text-stone-400"}`}>{counts[s.id]}</span>}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-stone-500">
+            What the other participants decided about their own suggestions. Open an item to see who decided what.
+          </p>
+        )}
+        <div className="flex items-center gap-2" role="group" aria-label="Filter by source">
+          <span className="text-xs text-stone-500">Show</span>
+          {KINDS.map((k) => {
+            const on = kinds.includes(k.id)
+            return (
+              <button
+                key={k.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggleKind(k.id)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ring-1 ring-inset transition-colors ${
+                  on ? "bg-stone-900 text-white ring-stone-900" : "bg-white text-stone-700 ring-stone-200 hover:bg-stone-50"
+                }`}
+              >
+                <k.icon className="h-3.5 w-3.5" />
+                {k.label}
+              </button>
+            )
+          })}
+          {kinds.length > 0 && (
+            <button type="button" onClick={() => update((n) => { n.delete("kind"); n.delete("page") })}
+              className="text-xs text-stone-500 underline hover:text-stone-900">
+              Clear
             </button>
-          ))}
+          )}
         </div>
-      )}
-      {tab === "others" && (
-        <p className="mt-4 text-sm text-stone-500">
-          What the other participants of your meetings and chats decided about their own suggestions. Open an item to see who decided what.
-          People decide only on their own suggestions.
-        </p>
-      )}
+      </div>
 
       {error && <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700 ring-1 ring-inset ring-red-600/20">{error}</div>}
 

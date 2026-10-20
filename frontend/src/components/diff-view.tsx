@@ -88,46 +88,81 @@ const CONTEXT = 1 // unchanged fragments kept on each side of a change, like a G
 
 type Row = { kind: "fragment"; index: number } | { kind: "gap"; start: number; end: number }
 
-/** Changed fragments with a little context; long unchanged stretches collapse into "N unchanged lines". */
+/**
+ * The changes with a little context. The unchanged text before, between and after the changes is hidden, but every
+ * hidden stretch can be expanded (and folded again), and "Show full text" expands all of it at once.
+ */
 function BodyFragments({ fragments }: { fragments: DiffFragment[] }) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
+  const [all, setAll] = useState(false)
 
   const visible = fragments.map(() => false)
   fragments.forEach((f, i) => {
     if (f.type === "equal") return
     for (let j = Math.max(0, i - CONTEXT); j <= Math.min(fragments.length - 1, i + CONTEXT); j++) visible[j] = true
   })
+  // Nothing changed in the text (e.g. only the title): the whole text is hidden context
+  const anyChange = fragments.some((f) => f.type !== "equal")
 
   const rows: Row[] = []
+  let gaps = 0
   for (let i = 0; i < fragments.length; ) {
-    if (visible[i]) {
+    if (visible[i] || all) {
       rows.push({ kind: "fragment", index: i })
       i++
       continue
     }
     let end = i
     while (end + 1 < fragments.length && !visible[end + 1]) end++
-    // A single hidden line is not worth a placeholder.
-    if (end === i || expanded.has(i)) for (let j = i; j <= end; j++) rows.push({ kind: "fragment", index: j })
-    else rows.push({ kind: "gap", start: i, end })
+    gaps++
+    if (expanded.has(i)) {
+      rows.push({ kind: "gap", start: i, end }) // the fold-again control, followed by the lines
+      for (let j = i; j <= end; j++) rows.push({ kind: "fragment", index: j })
+    } else rows.push({ kind: "gap", start: i, end })
     i = end + 1
   }
 
+  const toggle = (start: number) =>
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(start)) next.delete(start)
+      else next.add(start)
+      return next
+    })
+
+  const where = (start: number, end: number) =>
+    !anyChange ? "" : start === 0 ? " before the change" : end === fragments.length - 1 ? " after the change" : " between changes"
+
   return (
     <div className="space-y-1">
-      {rows.map((r) =>
-        r.kind === "fragment" ? (
-          <Fragment key={r.index} f={fragments[r.index]} />
-        ) : (
+      {rows.map((r) => {
+        if (r.kind === "fragment") return <Fragment key={r.index} f={fragments[r.index]} />
+        const count = r.end - r.start + 1
+        const open = expanded.has(r.start)
+        return (
           <button
             key={`gap-${r.start}`}
             type="button"
-            onClick={() => setExpanded((prev) => new Set(prev).add(r.start))}
+            aria-expanded={open}
+            onClick={() => toggle(r.start)}
             className="w-full rounded bg-stone-50 px-2 py-1 text-left text-xs text-stone-500 hover:bg-stone-100"
           >
-            ⋯ {r.end - r.start + 1} unchanged lines (click to show)
+            {open ? "▾ Hide" : "⋯ Show"} {count} unchanged {count === 1 ? "line" : "lines"}
+            {where(r.start, r.end)}
           </button>
-        ),
+        )
+      })}
+      {(gaps > 0 || all) && (
+        <button
+          type="button"
+          onClick={() => {
+            setAll((v) => !v)
+            setExpanded(new Set())
+          }}
+          className="mt-1 text-xs font-medium text-stone-600 hover:text-stone-900 hover:underline"
+        >
+          {all ? "Show only the changes" : "Show full text"}
+        </button>
       )}
     </div>
   )

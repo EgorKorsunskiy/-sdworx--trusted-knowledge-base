@@ -1,0 +1,57 @@
+[
+  {
+    "email": "employee.a@sdworx.example",
+    "display_name": "Employee A",
+    "department": "Payroll",
+    "title": "Payroll Consultant",
+    "roles": ["employee"],
+    "team": "Payroll Consultants Belgium"
+  },
+  {
+    "email": "employee.b@sdworx.example",
+    "display_name": "Employee B",
+    "department": "Payroll",
+    "title": "Payroll Consultant",
+    "roles": ["employee"],
+    "team": "Payroll Consultants Belgium"
+  },
+  {
+    "email": "employee.c@sdworx.example",
+    "display_name": "Employee C",
+    "department": "Payroll",
+    "title": "Payroll Consultant",
+    "roles": ["employee"],
+    "team": "Payroll Consultants Belgium"
+  },
+  {
+    "email": "senior.expert@sdworx.example",
+    "display_name": "Senior Expert",
+    "department": "Payroll",
+    "title": "Senior Payroll Expert",
+    "roles": ["employee", "expert"],
+    "expert_departments": ["Payroll"]
+  },
+  {
+    "email": "team.lead@sdworx.example",
+    "display_name": "Team Lead",
+    "department": "Payroll",
+    "title": "Payroll Team Lead",
+    "roles": ["employee", "team_lead"],
+    "team": "Payroll Consultants Belgium"
+  },
+  {
+    "email": "manager@sdworx.example",
+    "display_name": "Manager",
+    "department": "Payroll",
+    "title": "Payroll Manager",
+    "roles": ["employee", "manager"],
+    "team": "Payroll Consultants Belgium"
+  },
+  {
+    "email": "admin@sdworx.example",
+    "display_name": "Admin",
+    "department": "Platform",
+    "title": "Platform Admin",
+    "roles": ["employee", "admin"]
+  }
+]

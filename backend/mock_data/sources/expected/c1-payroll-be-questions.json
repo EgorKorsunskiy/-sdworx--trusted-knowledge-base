@@ -1,0 +1,103 @@
+{
+  "scenario": "c1",
+  "source_file": "chats/c1-payroll-be-questions.json",
+  "memes": [
+    {
+      "source": { "type": "chat", "title": "Payroll BE — questions", "date_from": "2026-10-01", "date_to": "2026-10-14" },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "how-to",
+      "statement": "A contractor's credit note for an already-paid invoice is not paid out: register it and deduct it from the contractor's next invoice; if there is no next invoice within two months, ask Finance for a refund.",
+      "suggested": {
+        "title": "Credit notes on already-paid contractor invoices",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["credit note", "contractor", "invoice", "refund"],
+      "quotes": [
+        { "speaker": "senior.expert@sdworx.example", "text": "don't pay it out", "at": "c1-008" },
+        { "speaker": "senior.expert@sdworx.example", "text": "register it and deduct it from the next invoice of the same contractor", "at": "c1-009" },
+        { "speaker": "senior.expert@sdworx.example", "text": "if there's no next invoice within 2 months, ask Finance for a refund request", "at": "c1-010" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.c@sdworx.example",
+          "quote": { "text": "confirmed, did exactly that last month 👍", "at": "c1-011" },
+          "basis_hint": null
+        }
+      ],
+      "confidence": 0.86,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "chat", "title": "Payroll BE — questions", "date_from": "2026-10-01", "date_to": "2026-10-14" },
+      "speaker": "employee.a@sdworx.example",
+      "speaker_basis_hint": null,
+      "kind": "how-to",
+      "statement": "The monthly contractor overview template is in the team SharePoint under Templates > Contractors.",
+      "suggested": {
+        "title": "Where to find the contractor overview template",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["template", "SharePoint", "contractor overview"],
+      "quotes": [
+        { "speaker": "employee.a@sdworx.example", "text": "team sharepoint > Templates > Contractors, TL moved it there in sept", "at": "c1-014" }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.78,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "chat", "title": "Payroll BE — questions", "date_from": "2026-10-01", "date_to": "2026-10-14" },
+      "speaker": "team.lead@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "fact",
+      "statement": "Freelancers invoice their travel costs themselves and payroll only processes the invoice, so travel costs belong on the invoice, not on a separate expense note.",
+      "suggested": {
+        "title": "Freelancer travel costs",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["travel costs", "freelancer", "invoice", "expenses"],
+      "quotes": [
+        { "speaker": "team.lead@sdworx.example", "text": "no — freelancers invoice travel costs themselves, we only process the invoice", "at": "c1-024" },
+        { "speaker": "team.lead@sdworx.example", "text": "so ask them to put the tickets on their invoice, not on a separate note", "at": "c1-025" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.a@sdworx.example",
+          "quote": { "text": "yep, correct", "at": "c1-026" },
+          "basis_hint": null
+        }
+      ],
+      "confidence": 0.84,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "traps": [
+    { "at": "c1-005", "expect": "no_meme", "note": "A forwards the question to the Senior Expert" },
+    { "at": "c1-006", "expect": "no_meme", "note": "Lunch" },
+    { "at": "c1-010", "expect": "not_confirmer", "note": "Team Lead's 👍 and B's ❤️ reactions are not confirmations (FR-MC6)" },
+    { "at": "c1-012", "expect": "not_confirmer", "note": "B's 'thx!!'" },
+    { "at": "c1-014", "expect": "not_confirmer", "note": "Team Lead's 👍 reaction on A's answer" },
+    { "at": "c1-015", "expect": "not_confirmer", "note": "C's 'found it, thanks' is an acknowledgement" },
+    { "at": "c1-016", "expect": "no_meme", "note": "Transient portal slowness, not knowledge" },
+    { "at": "c1-018", "expect": "no_meme", "note": "Incident status update" },
+    { "at": "c1-019", "expect": "no_meme", "note": "Coffee machine, GIF and laughing emoji" },
+    { "at": "c1-027", "expect": "not_confirmer", "note": "The asker's 'ok thx' is an acknowledgement" },
+    { "at": "c1-028", "expect": "no_meme", "note": "Unanswered question about Luxembourg rules; the 👀 reaction is not an answer" },
+    { "at": "c1-029", "expect": "no_meme", "note": "Team photo reminder" }
+  ],
+  "notes": [
+    "Meme 1 is built from three consecutive messages (FR-MC3).",
+    "Memes 2 and 3: the person who answered is the speaker, not the person who asked (FR-MC4).",
+    "Meme 3: A's 'yep, correct' replies to the statement and counts as a confirmation; the asker's 'ok thx' does not."
+  ]
+}

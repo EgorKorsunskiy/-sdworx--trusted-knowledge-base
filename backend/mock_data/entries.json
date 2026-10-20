@@ -1,0 +1,20 @@
+[
+  {
+    "public_id": "PP-BE-FRE-00001",
+    "scope": "country-specific",
+    "department": "Payroll",
+    "country": "BE",
+    "category": "Freelance / contractor payroll",
+    "author": "employee.a@sdworx.example",
+    "tags": ["dmfa", "employee a"],
+    "versions": [
+      {
+        "title": "Belgian freelancer DMFA filing deadline",
+        "body": "Freelancers in Belgium must be reported to the DMFA at least once per quarter, via the client's payroll provider or social secretariat.",
+        "justification": "Official DMFA guidance and internal payroll playbook",
+        "status": "Unverified",
+        "change_note": "Created"
+      }
+    ]
+  }
+]

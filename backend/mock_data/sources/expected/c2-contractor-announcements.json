@@ -1,0 +1,93 @@
+{
+  "scenario": "c2",
+  "source_file": "chats/c2-contractor-announcements.json",
+  "memes": [
+    {
+      "source": { "type": "chat", "title": "Contractor payroll — announcements", "date_from": "2026-09-22", "date_to": "2026-10-16" },
+      "speaker": "team.lead@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "rule",
+      "statement": "From the November 2026 run, contractor invoices received after the 25th go into the next month's run; before that, the cut-off was the 20th.",
+      "suggested": {
+        "title": "Cut-off date for contractor invoices",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["contractor", "invoice", "cut-off"],
+      "quotes": [
+        { "speaker": "team.lead@sdworx.example", "text": "from the October run, the cut-off for contractor invoices moves from the 20th to the 25th.", "at": "c2-001" },
+        { "speaker": "team.lead@sdworx.example", "text": "Update: Finance postponed it — October stays on the 20th, the 25th applies from the November run.", "at": "c2-007" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.c@sdworx.example",
+          "quote": { "text": "Klopt, dat stond ook in de payroll nieuwsbrief van september.", "at": "c2-005" },
+          "basis_hint": { "basis": "relayed", "source": "Payroll newsletter, September 2026" }
+        }
+      ],
+      "confidence": 0.87,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "chat", "title": "Contractor payroll — announcements", "date_from": "2026-09-22", "date_to": "2026-10-16" },
+      "speaker": "team.lead@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "rule",
+      "statement": "The contractor invoice cut-off also applies to invoices from umbrella companies.",
+      "suggested": {
+        "title": "Cut-off for umbrella-company invoices",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["umbrella company", "contractor", "invoice", "cut-off"],
+      "quotes": [
+        { "speaker": "team.lead@sdworx.example", "text": "yes, same rule for umbrella companies.", "at": "c2-004" }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.8,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "chat", "title": "Contractor payroll — announcements", "date_from": "2026-09-22", "date_to": "2026-10-16" },
+      "speaker": "manager@sdworx.example",
+      "speaker_basis_hint": { "basis": "relayed", "source": "Finance" },
+      "kind": "rule",
+      "statement": "For the December 2026 run, the contractor invoice cut-off is exceptionally the 18th because of the holidays.",
+      "suggested": {
+        "title": "December cut-off for contractor invoices",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["contractor", "invoice", "cut-off", "December", "holidays"],
+      "quotes": [
+        { "speaker": "manager@sdworx.example", "text": "Heads-up from Finance: for the December run the cut-off is exceptionally the 18th because of the holidays.", "at": "c2-011" }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.86,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "traps": [
+    { "at": "c2-001", "expect": "no_meme", "note": "'From the October run' is superseded by c2-007 and must not become a separate meme (FR-MC5); its 👀 and 👍 reactions are not confirmations" },
+    { "at": "c2-002", "expect": "not_confirmer", "note": "A's 'thanks for the heads-up'" },
+    { "at": "c2-006", "expect": "not_confirmer", "note": "Manager's 'noted'" },
+    { "at": "c2-007", "expect": "use_final_text", "note": "The first version said 'December run' by mistake; only the edited text counts" },
+    { "at": "c2-008", "expect": "no_meme", "note": "B's repeat-back question" },
+    { "at": "c2-009", "expect": "not_confirmer", "note": "The Team Lead's 'yes' answers the repeat-back; the speaker cannot confirm their own meme" },
+    { "at": "c2-010", "expect": "no_meme", "note": "A's anecdote about informing contractors" },
+    { "at": "c2-012", "expect": "not_confirmer", "note": "A's 'noted 👍'" },
+    { "at": "c2-013", "expect": "not_confirmer", "note": "C's 'thanks for the heads-up'" },
+    { "at": "c2-014", "expect": "no_meme", "note": "Task to update the pinned message" }
+  ],
+  "notes": [
+    "Meme 1 has the same information as M1 meme 1; if that meme is published first, it appears in similar_entries.",
+    "Meme 1: C confirmed the 25th before the start moved to November; C's authorship request shows that quote, so C can judge.",
+    "C's Dutch reply ('Right, that was also in the September payroll newsletter') is a confirmation with a relayed source."
+  ]
+}

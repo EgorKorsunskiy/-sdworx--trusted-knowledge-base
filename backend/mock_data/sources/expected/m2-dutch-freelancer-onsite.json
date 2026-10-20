@@ -1,0 +1,93 @@
+{
+  "scenario": "m2",
+  "source_file": "meetings/m2-dutch-freelancer-onsite.vtt",
+  "memes": [
+    {
+      "source": { "type": "meeting", "title": "Dutch freelancer on-site in Belgium", "date": "2026-10-08" },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "rule",
+      "statement": "A foreign self-employed person who works in Belgium needs a Limosa declaration before the first working day; the client should ask for the L1 receipt.",
+      "suggested": {
+        "title": "Limosa declaration for foreign freelancers",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["Limosa", "L1", "foreign freelancer", "cross-border"],
+      "quotes": [
+        { "speaker": "senior.expert@sdworx.example", "text": "First, the Lima so declaration — it has to be done before the first working day, and you, as the client, should ask for the L1 receipt.", "at": "00:08:20" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.a@sdworx.example",
+          "quote": { "text": "Yes, exactly — we had the same with a German freelancer in spring, I checked it on the Limosa portal then.", "at": "00:08:41" },
+          "basis_hint": { "basis": "relayed", "source": "Limosa portal" }
+        }
+      ],
+      "confidence": 0.86,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "meeting", "title": "Dutch freelancer on-site in Belgium", "date": "2026-10-08" },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "fact",
+      "statement": "An A1 certificate from the home country's social security office shows which country's social security applies to a cross-border freelancer; without it there is a risk of paying contributions in two countries.",
+      "suggested": {
+        "title": "A1 certificate for cross-border freelancers",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "eu"
+      },
+      "tags": ["A1", "social security", "cross-border", "double contributions"],
+      "quotes": [
+        { "speaker": "senior.expert@sdworx.example", "text": "Second, the a one certificate. He requests it from the Dutch social security office, and it shows that he stays insured in the Netherlands.", "at": "00:14:00" },
+        { "speaker": "senior.expert@sdworx.example", "text": "Without the a one, there is a risk that he has to pay contributions in both countries.", "at": "00:14:12" }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.82,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "meeting", "title": "Dutch freelancer on-site in Belgium", "date": "2026-10-08" },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "how-to",
+      "statement": "If a client sets fixed working hours or gives instructions to a freelancer, flag the case to a Senior Expert before the contract is signed, because of the risk of bogus self-employment.",
+      "suggested": {
+        "title": "Flag freelancer cases with fixed hours to a Senior Expert",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["bogus self-employment", "schijnzelfstandigheid", "contract", "escalation"],
+      "quotes": [
+        { "speaker": "senior.expert@sdworx.example", "text": "that's the schijn zelf standig heid risk, bogus self-employment.", "at": "00:24:10" },
+        { "speaker": "senior.expert@sdworx.example", "text": "Internally, our rule is: whenever a client sets fixed hours or gives instructions to a freelancer, the case is flagged to a Senior Expert before the contract is signed.", "at": "00:24:22" }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.85,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "traps": [
+    { "at": "00:03:00", "expect": "not_quoted", "note": "Guest names the client company and the consultant — personal and customer data" },
+    { "at": "00:03:12", "expect": "not_quoted", "note": "Guest gives the site, start date and day rate — case data" },
+    { "at": "00:08:50", "expect": "not_confirmer", "note": "Lotte is a guest without a Peerpoint user (FR-MA4)" },
+    { "at": "00:19:30", "expect": "no_meme", "note": "Informative statement by the guest, who has no Peerpoint user (FR-MA4)" },
+    { "at": "00:24:00", "expect": "no_meme", "note": "Case-specific working arrangement described by the guest" },
+    { "at": "00:24:34", "expect": "no_meme", "note": "Task for C" },
+    { "at": "00:33:00", "expect": "no_meme", "note": "C's repeat-back question" },
+    { "at": "00:33:06", "expect": "not_confirmer", "note": "The Senior Expert's 'Exactly.' answers the repeat-back; it is neither a new meme nor a confirmation" },
+    { "at": "00:38:00", "expect": "no_meme", "note": "Next steps with the client" }
+  ],
+  "notes": [
+    "The guest appears as 'Lotte (Guest)' and cannot be mapped to a user; the uploader is asked to resolve it (FR-MT3) and leaves it unmapped.",
+    "Speech-recognition artifacts are normalized in statements: 'Lima so' → 'Limosa', 'a one' → 'A1', 'schijn zelf standig heid' → 'schijnzelfstandigheid'.",
+    "All statements are generic: no consultant name, client name, rate or dates."
+  ]
+}

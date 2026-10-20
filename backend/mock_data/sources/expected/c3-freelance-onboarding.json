@@ -1,0 +1,81 @@
+{
+  "scenario": "c3",
+  "source_file": "chats/c3-freelance-onboarding.json",
+  "memes": [
+    {
+      "source": { "type": "chat", "title": "Freelance onboarding — cross-team", "date_from": "2026-10-05", "date_to": "2026-10-12" },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "how-to",
+      "statement": "Onboarding checklist for a new freelancer: check the company number in the KBO/BCE public search; collect proof of affiliation with a social insurance fund; for foreign freelancers, get the Limosa L1 receipt and the A1 certificate; sign a contract without fixed working hours.",
+      "suggested": {
+        "title": "Freelancer onboarding checklist",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["onboarding", "freelancer", "KBO/BCE", "social insurance fund", "Limosa", "A1"],
+      "quotes": [
+        { "speaker": "senior.expert@sdworx.example", "text": "Proposal for the onboarding checklist for every new freelancer:\n1. check the company number in the KBO/BCE public search\n2. collect proof of affiliation with a social insurance fund\n3. for foreign freelancers: Limosa L1 receipt and A1 certificate\n4. signed contract without fixed working hours", "at": "c3-002" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "manager@sdworx.example",
+          "quote": { "text": "Approved — this is our checklist from now on.", "at": "c3-003" },
+          "basis_hint": null
+        }
+      ],
+      "confidence": 0.9,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "chat", "title": "Freelance onboarding — cross-team", "date_from": "2026-10-05", "date_to": "2026-10-12" },
+      "speaker": "admin@sdworx.example",
+      "speaker_basis_hint": { "basis": "relayed", "source": "Internal GDPR policy" },
+      "kind": "rule",
+      "statement": "Onboarding documents are uploaded to the HR portal only and are never shared in chats.",
+      "suggested": {
+        "title": "Where to store onboarding documents",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "universal"
+      },
+      "tags": ["GDPR", "onboarding", "HR portal", "personal data"],
+      "quotes": [
+        { "speaker": "admin@sdworx.example", "text": "personal data never goes into chats. Onboarding documents are uploaded to the HR portal only.", "at": "c3-012" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "manager@sdworx.example",
+          "quote": { "text": "Correct, that's our GDPR policy.", "at": "c3-013" },
+          "basis_hint": null
+        }
+      ],
+      "confidence": 0.88,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "traps": [
+    { "at": "c3-002", "expect": "not_confirmer", "note": "B's and Admin's 👍 reactions on the checklist" },
+    { "at": "c3-003", "expect": "no_meme", "note": "'Can you add it to Peerpoint?' is a task; only the approval is a confirmation" },
+    { "at": "c3-004", "expect": "not_confirmer", "note": "A's 'finally 🙌' is enthusiasm, not agreement with the content" },
+    { "at": "c3-005", "expect": "no_meme", "note": "Task acknowledgement" },
+    { "at": "c3-006", "expect": "no_meme", "note": "GIF and laughing emoji" },
+    { "at": "c3-008", "expect": "no_meme", "note": "Parking — off-topic and transient" },
+    { "at": "c3-010", "expect": "no_meme", "note": "Parking update from facilities — off-topic and transient" },
+    { "at": "c3-011", "expect": "not_quoted", "note": "Personal data (name, national register number, day rate); deleted, but still in the export" },
+    { "at": "c3-014", "expect": "no_meme", "note": "Apology" },
+    { "at": "c3-016", "expect": "no_meme", "note": "Website debate (c3-016 to c3-023) ends without consensus" },
+    { "at": "c3-019", "expect": "no_meme", "note": "A's opinion on bogus self-employment" },
+    { "at": "c3-023", "expect": "no_meme", "note": "Manager parks the website question" },
+    { "at": "c3-025", "expect": "no_meme", "note": "Task status" },
+    { "at": "c3-026", "expect": "no_meme", "note": "GIF" }
+  ],
+  "notes": [
+    "Meme 1 overlaps with M2 memes 1 and 3 (Limosa, A1, fixed working hours).",
+    "Meme 2 must quote only the Admin's and the Manager's messages, never c3-011.",
+    "Verification: if the Senior Expert publishes meme 1, the entry has no team and the only Payroll expert is its author, so nobody can verify it. Let the Manager publish it, or add a second Payroll expert to users.json."
+  ]
+}

@@ -129,3 +129,5 @@ flowchart LR
 
 - Scope values: `country`, `eu`, `universal`
 - Public ID format: `PP-{CC}-{CAT}-{seq}` e.g. `PP-BE-FRE-00042`
+- Demo data lives in `backend/mock_data/*.json` (see its README); delete `backend/peerpoint.db` to reseed
+- Planned: AI parser for Teams meetings and group chats — see [specs/ai-parser/FUNCTIONAL_SPEC.md](specs/ai-parser/FUNCTIONAL_SPEC.md)

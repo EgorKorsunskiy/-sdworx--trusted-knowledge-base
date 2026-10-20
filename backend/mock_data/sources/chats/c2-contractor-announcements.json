@@ -1,0 +1,50 @@
+{
+  "chat": { "id": "c2", "title": "Contractor payroll — announcements", "type": "group" },
+  "exported_at": "2026-10-16T18:00:00+02:00",
+  "range": { "from": "2026-09-22", "to": "2026-10-16" },
+  "members": [
+    { "email": "team.lead@sdworx.example", "display_name": "Team Lead" },
+    { "email": "manager@sdworx.example", "display_name": "Manager" },
+    { "email": "employee.a@sdworx.example", "display_name": "Employee A" },
+    { "email": "employee.b@sdworx.example", "display_name": "Employee B" },
+    { "email": "employee.c@sdworx.example", "display_name": "Employee C" }
+  ],
+  "messages": [
+    {
+      "id": "c2-001", "from": "team.lead@sdworx.example", "created_at": "2026-09-22T09:00:00+02:00",
+      "text": "📌 **Cut-off change** — from the October run, the cut-off for contractor invoices moves from the 20th to the 25th. @Employee A @Employee B @Employee C",
+      "reply_to_id": null, "pinned": true,
+      "mentions": ["employee.a@sdworx.example", "employee.b@sdworx.example", "employee.c@sdworx.example"],
+      "reactions": [
+        { "emoji": "👀", "by": "employee.b@sdworx.example" },
+        { "emoji": "👍", "by": "employee.c@sdworx.example" }
+      ]
+    },
+    { "id": "c2-002", "from": "employee.a@sdworx.example", "created_at": "2026-09-22T09:12:00+02:00", "text": "thanks for the heads-up", "reply_to_id": "c2-001", "reactions": [] },
+    { "id": "c2-003", "from": "employee.b@sdworx.example", "created_at": "2026-09-22T09:40:00+02:00", "text": "does this also apply to invoices from umbrella companies?", "reply_to_id": "c2-001", "reactions": [] },
+    { "id": "c2-004", "from": "team.lead@sdworx.example", "created_at": "2026-09-22T10:05:00+02:00", "text": "yes, same rule for umbrella companies.", "reply_to_id": "c2-003", "reactions": [] },
+    { "id": "c2-005", "from": "employee.c@sdworx.example", "created_at": "2026-09-23T08:31:00+02:00", "text": "Klopt, dat stond ook in de payroll nieuwsbrief van september.", "reply_to_id": "c2-001", "reactions": [] },
+    { "id": "c2-006", "from": "manager@sdworx.example", "created_at": "2026-09-23T08:45:00+02:00", "text": "noted", "reply_to_id": "c2-001", "reactions": [] },
+    {
+      "id": "c2-007", "from": "team.lead@sdworx.example", "created_at": "2026-09-29T16:20:00+02:00",
+      "text": "Update: Finance postponed it — October stays on the 20th, the 25th applies from the November run.",
+      "reply_to_id": null, "pinned": true, "reactions": [],
+      "edited_at": "2026-09-29T16:24:00+02:00",
+      "edit_history": [
+        { "text": "Update: Finance postponed it — October stays on the 20th, the 25th applies from the December run.", "created_at": "2026-09-29T16:20:00+02:00" }
+      ]
+    },
+    { "id": "c2-008", "from": "employee.b@sdworx.example", "created_at": "2026-09-29T16:30:00+02:00", "text": "👀 ok so October = 20th, November = 25th?", "reply_to_id": "c2-007", "reactions": [] },
+    { "id": "c2-009", "from": "team.lead@sdworx.example", "created_at": "2026-09-29T16:33:00+02:00", "text": "yes", "reply_to_id": "c2-008", "reactions": [] },
+    { "id": "c2-010", "from": "employee.a@sdworx.example", "created_at": "2026-10-06T11:00:00+02:00", "text": "fyi I told my contractors about the November change, most were happy 🙂", "reply_to_id": null, "reactions": [] },
+    {
+      "id": "c2-011", "from": "manager@sdworx.example", "created_at": "2026-10-15T10:10:00+02:00",
+      "text": "Heads-up from Finance: for the December run the cut-off is exceptionally the 18th because of the holidays.",
+      "reply_to_id": null,
+      "reactions": [{ "emoji": "👍", "by": "employee.b@sdworx.example" }]
+    },
+    { "id": "c2-012", "from": "employee.a@sdworx.example", "created_at": "2026-10-15T10:14:00+02:00", "text": "noted 👍", "reply_to_id": "c2-011", "reactions": [] },
+    { "id": "c2-013", "from": "employee.c@sdworx.example", "created_at": "2026-10-15T10:20:00+02:00", "text": "thanks for the heads-up", "reply_to_id": "c2-011", "reactions": [] },
+    { "id": "c2-014", "from": "team.lead@sdworx.example", "created_at": "2026-10-16T08:50:00+02:00", "text": "I'll update the pinned message with the December exception", "reply_to_id": null, "reactions": [] }
+  ]
+}

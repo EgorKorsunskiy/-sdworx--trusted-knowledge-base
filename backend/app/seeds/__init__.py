@@ -1,11 +1,13 @@
-from datetime import datetime
+import json
 
 from sqlalchemy.orm import Session
 
+from app.config import MOCK_DATA_DIR
 from app.database import Base, engine
 from app.models import (
     Category,
     Entry,
+    EntryScope,
     EntryVersion,
     RoleType,
     SystemSetting,
@@ -19,6 +21,14 @@ from app.models import (
 )
 
 
+def _load(name: str) -> list[dict]:
+    """Read mock_data/<name>.json; a missing file means no rows of that kind."""
+    path = MOCK_DATA_DIR / f"{name}.json"
+    if not path.exists():
+        return []
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def seed_all() -> None:
     Base.metadata.create_all(bind=engine)
 
@@ -27,149 +37,82 @@ def seed_all() -> None:
             print("Database already seeded.")
             return
 
-        # Default category
-        payroll_category = Category(
-            name="Freelance / contractor payroll",
-            description="Rules and guidance for freelance and contractor payroll in Belgium/EU",
-            is_default=True,
-        )
-        db.add(payroll_category)
+        categories: dict[str, Category] = {}
+        for data in _load("categories"):
+            category = Category(**data)
+            db.add(category)
+            categories[category.name] = category
+
+        teams: dict[str, Team] = {}
+        for data in _load("teams"):
+            team = Team(**data)
+            db.add(team)
+            teams[team.name] = team
         db.flush()
 
-        # Team: Payroll Consultants Belgium
-        payroll_team = Team(
-            name="Payroll Consultants Belgium",
-            department="Payroll",
-            description="Belgian payroll consulting team",
-        )
-        db.add(payroll_team)
-        db.flush()
-
-        # Users
-        users_data = [
-            {
-                "email": "employee.a@sdworx.example",
-                "display_name": "Employee A",
-                "department": "Payroll",
-                "title": "Payroll Consultant",
-                "roles": [RoleType.EMPLOYEE.value],
-            },
-            {
-                "email": "employee.b@sdworx.example",
-                "display_name": "Employee B",
-                "department": "Payroll",
-                "title": "Payroll Consultant",
-                "roles": [RoleType.EMPLOYEE.value],
-            },
-            {
-                "email": "employee.c@sdworx.example",
-                "display_name": "Employee C",
-                "department": "Payroll",
-                "title": "Payroll Consultant",
-                "roles": [RoleType.EMPLOYEE.value],
-            },
-            {
-                "email": "senior.expert@sdworx.example",
-                "display_name": "Senior Expert",
-                "department": "Payroll",
-                "title": "Senior Payroll Expert",
-                "roles": [RoleType.EMPLOYEE.value, RoleType.EXPERT.value],
-            },
-            {
-                "email": "team.lead@sdworx.example",
-                "display_name": "Team Lead",
-                "department": "Payroll",
-                "title": "Payroll Team Lead",
-                "roles": [RoleType.EMPLOYEE.value, RoleType.TEAM_LEAD.value],
-            },
-            {
-                "email": "manager@sdworx.example",
-                "display_name": "Manager",
-                "department": "Payroll",
-                "title": "Payroll Manager",
-                "roles": [RoleType.EMPLOYEE.value, RoleType.MANAGER.value],
-            },
-            {
-                "email": "admin@sdworx.example",
-                "display_name": "Admin",
-                "department": "Platform",
-                "title": "Platform Admin",
-                "roles": [RoleType.EMPLOYEE.value, RoleType.ADMIN.value],
-            },
-        ]
-
-        created_users: dict[str, User] = {}
-        for data in users_data:
+        # Users are keyed by email; insertion order defines their ids
+        users: dict[str, User] = {}
+        user_teams: dict[str, str] = {}
+        for data in _load("users"):
             u = User(
                 email=data["email"],
                 display_name=data["display_name"],
-                department=data["department"],
-                title=data["title"],
+                department=data.get("department"),
+                title=data.get("title"),
             )
             db.add(u)
             db.flush()
-            created_users[data["display_name"]] = u
-            for role in data["roles"]:
-                db.add(UserRole(user_id=u.id, role=role.value if hasattr(role, "value") else role))
+            users[u.email] = u
+            for role in data.get("roles", [RoleType.EMPLOYEE.value]):
+                db.add(UserRole(user_id=u.id, role=role))
+            if data.get("team"):
+                user_teams[u.email] = data["team"]
+                db.add(TeamMembership(user_id=u.id, team_id=teams[data["team"]].id, is_primary=True))
+            # Senior experts: departments they may verify
+            for department in data.get("expert_departments", []):
+                db.add(VerifierDepartmentMap(user_id=u.id, department=department))
 
-        # Team memberships: primary for A/B/C + lead/manager
-        for name in ["Employee A", "Employee B", "Employee C", "Team Lead", "Manager"]:
-            u = created_users[name]
-            db.add(TeamMembership(user_id=u.id, team_id=payroll_team.id, is_primary=True))
+        db.add_all(SystemSetting(**data) for data in _load("settings"))
 
-        # Senior expert mapped to Payroll department
-        expert = created_users["Senior Expert"]
-        db.add(VerifierDepartmentMap(user_id=expert.id, department="Payroll"))
+        tags: dict[str, Tag] = {}
+        entries = _load("entries")
+        for data in entries:
+            author = users[data["author"]]
+            # Like a real submission, the entry belongs to the author's team unless set explicitly
+            team_name = data.get("team") or user_teams.get(author.email)
+            entry = Entry(
+                public_id=data["public_id"],
+                scope=data.get("scope", EntryScope.COUNTRY.value),
+                department=data.get("department") or author.department or "General",
+                country=data.get("country"),
+                category_id=categories[data["category"]].id,
+                author_id=author.id,
+                team_id=teams[team_name].id if team_name else None,
+            )
+            db.add(entry)
+            db.flush()
 
-        # System settings
-        settings = [
-            SystemSetting(key="duplicate_similarity_threshold", value="0.6", value_type="float", description="Default duplicate warning threshold"),
-            SystemSetting(key="stale_hint_months", value="12", value_type="int", description="Months before showing may-be-outdated hint"),
-            SystemSetting(key="expert_vote_multiplier", value="1.3", value_type="float", description="Weight multiplier for senior-expert votes"),
-            SystemSetting(key="reputation_verified", value="10", value_type="int", description="Reputation for verified entry"),
-            SystemSetting(key="reputation_vote", value="2", value_type="int", description="Reputation for correct vote"),
-            SystemSetting(key="reputation_pr_merged", value="5", value_type="int", description="Reputation for merged PR"),
-            SystemSetting(key="reputation_cited", value="3", value_type="int", description="Reputation for citation"),
-        ]
-        db.add_all(settings)
+            for name in data.get("tags", []):
+                if name not in tags:
+                    tags[name] = Tag(name=name)
+                    db.add(tags[name])
+                    db.flush()
+                entry.tags.append(tags[name])
 
-        # Seed one sample entry from Employee A (unverified)
-        author = created_users["Employee A"]
-        entry = Entry(
-            public_id="PP-BE-FRE-00001",
-            scope="country-specific",
-            department="Payroll",
-            country="BE",
-            category_id=payroll_category.id,
-            author_id=author.id,
-            team_id=payroll_team.id,
-        )
-        db.add(entry)
-        db.flush()
-
-        tag = Tag(name="dmfa")
-        db.add(tag)
-        db.flush()
-        entry.tags.append(tag)
-        author_tag = Tag(name=author.display_name.lower())
-        db.add(author_tag)
-        db.flush()
-        entry.tags.append(author_tag)
-
-        version = EntryVersion(
-            entry_id=entry.id,
-            version_number=1,
-            title="Belgian freelancer DMFA filing deadline",
-            body="Freelancers in Belgium must be reported to the DMFA at least once per quarter, via the client's payroll provider or social secretariat.",
-            justification="Official DMFA guidance and internal payroll playbook",
-            status=VersionStatus.UNVERIFIED.value,
-            change_note="Created",
-            edited_by_id=author.id,
-        )
-        db.add(version)
+            for number, v in enumerate(data["versions"], start=1):
+                db.add(EntryVersion(
+                    entry_id=entry.id,
+                    version_number=number,
+                    title=v["title"],
+                    body=v["body"],
+                    justification=v.get("justification"),
+                    status=v.get("status", VersionStatus.UNVERIFIED.value),
+                    change_note=v.get("change_note"),
+                    edited_by_id=users[v.get("edited_by", data["author"])].id,
+                ))
 
         db.commit()
-        print("Seeded database with demo users and one sample entry.")
+        print(f"Seeded database from {MOCK_DATA_DIR} ({len(users)} users, {len(entries)} entries).")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,53 @@
+{
+  "chat": { "id": "c3", "title": "Freelance onboarding — cross-team", "type": "group" },
+  "exported_at": "2026-10-12T18:00:00+02:00",
+  "range": { "from": "2026-10-05", "to": "2026-10-12" },
+  "members": [
+    { "email": "senior.expert@sdworx.example", "display_name": "Senior Expert" },
+    { "email": "manager@sdworx.example", "display_name": "Manager" },
+    { "email": "employee.a@sdworx.example", "display_name": "Employee A" },
+    { "email": "employee.b@sdworx.example", "display_name": "Employee B" },
+    { "email": "admin@sdworx.example", "display_name": "Admin" }
+  ],
+  "messages": [
+    { "id": "c3-001", "from": "manager@sdworx.example", "created_at": "2026-10-05T09:00:00+02:00", "text": "Hi all, I created this chat to align on freelancer onboarding across teams. @Senior Expert can you kick off?", "reply_to_id": null, "reactions": [], "mentions": ["senior.expert@sdworx.example"] },
+    {
+      "id": "c3-002", "from": "senior.expert@sdworx.example", "created_at": "2026-10-05T09:45:00+02:00",
+      "text": "Proposal for the onboarding checklist for every new freelancer:\n1. check the company number in the KBO/BCE public search\n2. collect proof of affiliation with a social insurance fund\n3. for foreign freelancers: Limosa L1 receipt and A1 certificate\n4. signed contract without fixed working hours",
+      "reply_to_id": null,
+      "reactions": [
+        { "emoji": "👍", "by": "employee.b@sdworx.example" },
+        { "emoji": "👍", "by": "admin@sdworx.example" }
+      ]
+    },
+    { "id": "c3-003", "from": "manager@sdworx.example", "created_at": "2026-10-05T10:02:00+02:00", "text": "Approved — this is our checklist from now on. @Senior Expert can you add it to Peerpoint?", "reply_to_id": "c3-002", "reactions": [], "mentions": ["senior.expert@sdworx.example"] },
+    { "id": "c3-004", "from": "employee.a@sdworx.example", "created_at": "2026-10-05T10:03:00+02:00", "text": "finally 🙌", "reply_to_id": "c3-002", "reactions": [] },
+    { "id": "c3-005", "from": "senior.expert@sdworx.example", "created_at": "2026-10-05T10:05:00+02:00", "text": "will do", "reply_to_id": "c3-003", "reactions": [] },
+    { "id": "c3-006", "from": "employee.b@sdworx.example", "created_at": "2026-10-05T10:30:00+02:00", "text": "", "reply_to_id": null, "reactions": [], "attachments": [{ "type": "gif", "name": "celebration-dance.gif" }] },
+    { "id": "c3-007", "from": "admin@sdworx.example", "created_at": "2026-10-05T10:31:00+02:00", "text": "😂", "reply_to_id": "c3-006", "reactions": [] },
+    { "id": "c3-008", "from": "employee.a@sdworx.example", "created_at": "2026-10-06T14:12:00+02:00", "text": "does anyone know where to park now that -1 is closed?", "reply_to_id": null, "reactions": [] },
+    { "id": "c3-009", "from": "employee.b@sdworx.example", "created_at": "2026-10-06T14:15:00+02:00", "text": "street behind the station, but it's expensive", "reply_to_id": "c3-008", "reactions": [] },
+    { "id": "c3-010", "from": "admin@sdworx.example", "created_at": "2026-10-06T14:16:00+02:00", "text": "facilities said -2 is open for staff until Friday", "reply_to_id": "c3-008", "reactions": [] },
+    {
+      "id": "c3-011", "from": "employee.b@sdworx.example", "created_at": "2026-10-07T11:20:00+02:00",
+      "text": "is this ok to share for the onboarding? Name: Jeroen De Smet, national register number 85.07.30-123.45, day rate €650, start 2 November",
+      "reply_to_id": null, "reactions": [],
+      "deleted_at": "2026-10-07T11:41:00+02:00"
+    },
+    { "id": "c3-012", "from": "admin@sdworx.example", "created_at": "2026-10-07T11:26:00+02:00", "text": "Please delete this — personal data never goes into chats. Onboarding documents are uploaded to the HR portal only.", "reply_to_id": "c3-011", "reactions": [] },
+    { "id": "c3-013", "from": "manager@sdworx.example", "created_at": "2026-10-07T11:29:00+02:00", "text": "Correct, that's our GDPR policy.", "reply_to_id": "c3-012", "reactions": [] },
+    { "id": "c3-014", "from": "employee.b@sdworx.example", "created_at": "2026-10-07T11:41:00+02:00", "text": "sorry!! deleted 🙈", "reply_to_id": "c3-012", "reactions": [] },
+    { "id": "c3-015", "from": "admin@sdworx.example", "created_at": "2026-10-07T11:43:00+02:00", "text": "no worries, thanks for fixing it quickly 🙏", "reply_to_id": "c3-014", "reactions": [] },
+    { "id": "c3-016", "from": "employee.b@sdworx.example", "created_at": "2026-10-09T13:05:00+02:00", "text": "question for the group: do we accept freelancers who don't have their own website? one of mine only has a linkedin", "reply_to_id": null, "reactions": [] },
+    { "id": "c3-017", "from": "employee.a@sdworx.example", "created_at": "2026-10-09T13:12:00+02:00", "text": "if they don't have a website they're not a real freelancer imo", "reply_to_id": "c3-016", "reactions": [] },
+    { "id": "c3-018", "from": "employee.b@sdworx.example", "created_at": "2026-10-09T13:15:00+02:00", "text": "that's a bit harsh? lots of freelancers only use linkedin", "reply_to_id": "c3-017", "reactions": [] },
+    { "id": "c3-019", "from": "employee.a@sdworx.example", "created_at": "2026-10-09T13:18:00+02:00", "text": "it's a red flag for schijnzelfstandigheid though", "reply_to_id": "c3-018", "reactions": [] },
+    { "id": "c3-020", "from": "employee.b@sdworx.example", "created_at": "2026-10-09T13:20:00+02:00", "text": "the checklist doesn't say anything about websites", "reply_to_id": "c3-019", "reactions": [] },
+    { "id": "c3-021", "from": "employee.a@sdworx.example", "created_at": "2026-10-09T13:30:00+02:00", "text": "let's agree to disagree 😅", "reply_to_id": "c3-020", "reactions": [] },
+    { "id": "c3-022", "from": "employee.b@sdworx.example", "created_at": "2026-10-09T13:31:00+02:00", "text": "😅 fine", "reply_to_id": "c3-021", "reactions": [] },
+    { "id": "c3-023", "from": "manager@sdworx.example", "created_at": "2026-10-09T15:00:00+02:00", "text": "let's park the website question for now", "reply_to_id": "c3-016", "reactions": [] },
+    { "id": "c3-024", "from": "admin@sdworx.example", "created_at": "2026-10-12T09:00:00+02:00", "text": "happy Monday 🌞", "reply_to_id": null, "reactions": [] },
+    { "id": "c3-025", "from": "senior.expert@sdworx.example", "created_at": "2026-10-12T09:15:00+02:00", "text": "@Manager I'll add the checklist to Peerpoint this week, still finishing the Q4 planning", "reply_to_id": "c3-003", "reactions": [], "mentions": ["manager@sdworx.example"] },
+    { "id": "c3-026", "from": "employee.a@sdworx.example", "created_at": "2026-10-12T09:20:00+02:00", "text": "", "reply_to_id": null, "reactions": [], "attachments": [{ "type": "gif", "name": "monday-coffee.gif" }] }
+  ]
+}

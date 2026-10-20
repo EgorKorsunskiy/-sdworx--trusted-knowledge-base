@@ -10,6 +10,7 @@ Peerpoint is an **internal knowledge database for SD Worx employees, enriched wi
 - **Peer review (from academia)** — every employee can report the usage of an entry they used, with a full usage record: who, when, where and whether it was correct.
 - **Git-style version control** — duplicates and outdated information become pull requests to the existing entry, and every line shows who is responsible for it.
 - **Contacts** — every author and contributor states whether the topic is their responsibility or relayed from a source, so a reader knows whom to ask.
+- **Automatic knowledge capture (AI parser)** — much working knowledge is only said in Teams meetings or written in group chats. AI agents read meeting transcripts and group chats and extract the facts, rules and decisions in them, each with the exact quotes that support it, the person who said it and the colleagues who confirmed it. The agents only *propose*: every person decides on their own suggestion (approve, reject or postpone) in the **Information overview**, and an approved suggestion becomes a normal Unverified entry that follows the usual verification. Transcripts are not kept after extraction, and only the people who took part in a conversation can see what was extracted from it.
 
 Every entry answers the question *and* shows **why you can rely on it and who to ask about it**.
 

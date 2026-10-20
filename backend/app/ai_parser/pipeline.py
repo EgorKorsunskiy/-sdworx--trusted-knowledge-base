@@ -1,5 +1,6 @@
 """Source → Cursor agent → validated, enriched memes → JSON files under MEMES_DIR."""
 import json
+import re
 import tempfile
 import threading
 from collections import defaultdict
@@ -113,7 +114,22 @@ def _meme_out(db: Session, meme: AgentMeme, source: Source, meme_id: str, day: d
     }
 
 
-def _write(path: Path, payload: dict) -> Path:
+def _safe_name(value: str) -> str:
+    """A single file or folder name: no separators, no leading dots, nothing that could leave the output folder."""
+    name = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value)).strip(".-")
+    return name or "source"
+
+
+def _inside(base: Path, path: Path) -> Path:
+    """The path itself, after checking that it stays under ``base`` (guards against path traversal)."""
+    resolved, root = path.resolve(), base.resolve()
+    if root != resolved and root not in resolved.parents:
+        raise ValueError(f"refusing to write outside {root}: {resolved}")
+    return path
+
+
+def _write(base: Path, path: Path, payload: dict) -> Path:
+    path = _inside(base, path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return path
@@ -172,7 +188,7 @@ def write_files(extraction: Extraction, out_dir: Path | None = None) -> list[Pat
     }
     if source.type == "meeting":
         payload = {"source": {"id": source.id, **source.ref()}, **header, "memes": extraction.memes, "rejected": extraction.rejected}
-        return [_write(out_dir / "meetings" / f"{source.id}.json", payload)]
+        return [_write(out_dir, out_dir / "meetings" / f"{_safe_name(source.id)}.json", payload)]
 
     by_day: dict[str, dict[str, list]] = defaultdict(lambda: {"memes": [], "rejected": []})
     for meme in extraction.memes:
@@ -180,11 +196,15 @@ def write_files(extraction: Extraction, out_dir: Path | None = None) -> list[Pat
     for item in extraction.rejected:
         by_day[item["day"]]["rejected"].append({k: v for k, v in item.items() if k != "day"})
 
-    chat_dir = out_dir / "chats" / source.id
+    chat_dir = _inside(out_dir, out_dir / "chats" / _safe_name(source.id))
     for old in chat_dir.glob("*.json"):
         old.unlink()  # a re-run replaces every day file of the chat
     return [
-        _write(chat_dir / f"{day}.json", {"source": {"id": source.id, **source.ref(), "day": day}, **header, **by_day[day]})
+        _write(
+            out_dir,
+            chat_dir / f"{_safe_name(day)}.json",
+            {"source": {"id": source.id, **source.ref(), "day": day}, **header, **by_day[day]},
+        )
         for day in sorted(by_day)
     ]
 

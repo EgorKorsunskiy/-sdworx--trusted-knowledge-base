@@ -124,6 +124,23 @@ def test_pipeline_writes_one_file_per_meeting(db_session, tmp_path):
     assert runner.calls == [{"prompt": pipeline.PROMPT, "resume": None, "files": ["context.json", "instructions.md", "source.md"]}]
 
 
+@pytest.mark.parametrize("bad_id", ["../../escape", "..", "/etc/passwd", "a/../../b", "..\\..\\x", ""])
+def test_output_files_never_leave_the_output_folder(db_session, tmp_path, bad_id):
+    out_dir = tmp_path / "memes"
+    for sid in ("m1", "c2"):
+        source = pipeline.source_from_index(db_session, INDEX[sid])
+        source.id = bad_id  # an id derived from an uploaded title or file name
+        paths = pipeline.run_source(db_session, source, out_dir=out_dir, runner=fake_runner({"memes": agent_memes(sid)}))
+        assert paths and all(out_dir.resolve() in p.resolve().parents for p in paths)
+    assert [p for p in tmp_path.rglob("*.json") if out_dir not in p.parents] == []
+
+
+def test_write_refuses_a_path_outside_the_base(tmp_path):
+    with pytest.raises(ValueError):
+        pipeline._write(tmp_path / "base", tmp_path / "elsewhere" / "x.json", {})
+    assert not (tmp_path / "elsewhere").exists()
+
+
 def test_pipeline_writes_one_file_per_chat_day(db_session, tmp_path):
     stale = tmp_path / "chats" / "c2-contractor-announcements" / "2026-01-01.json"
     stale.parent.mkdir(parents=True)

@@ -135,10 +135,21 @@ def test_output_files_never_leave_the_output_folder(db_session, tmp_path, bad_id
     assert [p for p in tmp_path.rglob("*.json") if out_dir not in p.parents] == []
 
 
-def test_write_refuses_a_path_outside_the_base(tmp_path):
+def test_names_are_reduced_to_a_single_safe_component(tmp_path):
+    for bad in ("../../escape", "..", "/etc/passwd", "a/../../b", "..\\..\\x", "", "name with spaces"):
+        name = pipeline._safe_name(bad)
+        assert name and "/" not in name and "\\" not in name and not name.startswith(".")
+    assert pipeline._safe_name("m1-payroll-be-weekly") == "m1-payroll-be-weekly"
+    assert pipeline._safe_name("2026-09-29") == "2026-09-29"
+    # a symlink inside the output folder that points elsewhere is refused
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    base = tmp_path / "base"
+    base.mkdir()
+    (base / "meetings").symlink_to(outside, target_is_directory=True)
     with pytest.raises(ValueError):
-        pipeline._write(tmp_path / "base", tmp_path / "elsewhere" / "x.json", {})
-    assert not (tmp_path / "elsewhere").exists()
+        pipeline._write(base, ("meetings",), "x", {})
+    assert list(outside.iterdir()) == []
 
 
 def test_pipeline_writes_one_file_per_chat_day(db_session, tmp_path):

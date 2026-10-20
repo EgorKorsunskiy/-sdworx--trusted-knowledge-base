@@ -1,5 +1,6 @@
 """Source → Cursor agent → validated, enriched memes → JSON files under MEMES_DIR."""
 import json
+import os
 import re
 import tempfile
 import threading
@@ -116,22 +117,26 @@ def _meme_out(db: Session, meme: AgentMeme, source: Source, meme_id: str, day: d
 
 def _safe_name(value: str) -> str:
     """A single file or folder name: no separators, no leading dots, nothing that could leave the output folder."""
-    name = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value)).strip(".-")
+    name = re.sub(r"[^A-Za-z0-9._-]+", "-", os.path.basename(str(value).replace("\\", "/"))).strip(".-")
     return name or "source"
 
 
-def _inside(base: Path, path: Path) -> Path:
-    """The path itself, after checking that it stays under ``base`` (guards against path traversal)."""
-    resolved, root = path.resolve(), base.resolve()
-    if root != resolved and root not in resolved.parents:
-        raise ValueError(f"refusing to write outside {root}: {resolved}")
-    return path
+def _target(base: Path, folder: tuple[str, ...], stem: str = "") -> tuple[str, Path]:
+    """Folder (and file) under ``base`` built only from sanitised names; refuses anything that resolves outside it."""
+    root = os.path.realpath(base)
+    names = [_safe_name(part) for part in folder] + ([_safe_name(stem) + ".json"] if stem else [])
+    resolved = os.path.realpath(os.path.join(root, *names))
+    if os.path.commonpath([root, resolved]) != root:
+        raise ValueError(f"refusing to write outside {root}")
+    return resolved, Path(base, *names)
 
 
-def _write(base: Path, path: Path, payload: dict) -> Path:
-    path = _inside(base, path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+def _write(base: Path, folder: tuple[str, ...], stem: str, payload: dict) -> Path:
+    """Write ``payload`` as <base>/<folder>/<stem>.json; the location is checked, never taken from the data as is."""
+    resolved, path = _target(base, folder, stem)
+    os.makedirs(os.path.dirname(resolved), exist_ok=True)
+    with open(resolved, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
     return path
 
 
@@ -188,7 +193,7 @@ def write_files(extraction: Extraction, out_dir: Path | None = None) -> list[Pat
     }
     if source.type == "meeting":
         payload = {"source": {"id": source.id, **source.ref()}, **header, "memes": extraction.memes, "rejected": extraction.rejected}
-        return [_write(out_dir, out_dir / "meetings" / f"{_safe_name(source.id)}.json", payload)]
+        return [_write(out_dir, ("meetings",), source.id, payload)]
 
     by_day: dict[str, dict[str, list]] = defaultdict(lambda: {"memes": [], "rejected": []})
     for meme in extraction.memes:
@@ -196,15 +201,11 @@ def write_files(extraction: Extraction, out_dir: Path | None = None) -> list[Pat
     for item in extraction.rejected:
         by_day[item["day"]]["rejected"].append({k: v for k, v in item.items() if k != "day"})
 
-    chat_dir = _inside(out_dir, out_dir / "chats" / _safe_name(source.id))
-    for old in chat_dir.glob("*.json"):
+    folder = ("chats", source.id)
+    for old in Path(_target(out_dir, folder)[0]).glob("*.json"):
         old.unlink()  # a re-run replaces every day file of the chat
     return [
-        _write(
-            out_dir,
-            chat_dir / f"{_safe_name(day)}.json",
-            {"source": {"id": source.id, **source.ref(), "day": day}, **header, **by_day[day]},
-        )
+        _write(out_dir, folder, day, {"source": {"id": source.id, **source.ref(), "day": day}, **header, **by_day[day]})
         for day in sorted(by_day)
     ]
 

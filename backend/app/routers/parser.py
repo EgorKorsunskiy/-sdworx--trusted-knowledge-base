@@ -70,7 +70,10 @@ def upload_source(
     run_id = uuid.uuid4().hex[:12]
     upload_dir = config.MEMES_DIR / "_uploads" / run_id
     upload_dir.mkdir(parents=True, exist_ok=True)
-    path = upload_dir / Path(file.filename or f"source.{'vtt' if source_type == 'meeting' else 'json'}").name
+    # The client's file name is never used as a path: it is reduced to one safe name inside this run's own folder
+    path = upload_dir / pipeline._safe_name(file.filename or f"source.{'vtt' if source_type == 'meeting' else 'json'}")
+    if upload_dir.resolve() not in path.resolve().parents:
+        raise HTTPException(status_code=422, detail="Invalid file name")
     path.write_bytes(file.file.read())
 
     try:

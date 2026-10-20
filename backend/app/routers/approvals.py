@@ -66,6 +66,7 @@ def pending_approvals(
                     "country": v.entry.country,
                     "author": user_to_out(v.entry.author),
                     "difference_note": v.entry.difference_note,
+                    "tags": [{"id": t.id, "name": t.name, "tag_type": t.tag_type} for t in v.entry.tags],
                 },
             })
     return result

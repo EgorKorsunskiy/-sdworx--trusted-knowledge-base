@@ -74,7 +74,7 @@ def test_status_and_verifier_role_filters(client):
     assert _ids(client, {"status": "outdated"}) == []
 
 
-def test_author_team_and_project_filters(client):
+def test_author_and_team_filters(client):
     e2, e3 = _setup(client)
     assert _ids(client, {"author": 3}) == [e3]
     assert set(_ids(client, {"author": [2, 3]})) == {e2, e3}
@@ -82,8 +82,9 @@ def test_author_team_and_project_filters(client):
     experts = _facet_id(client, "teams", "Payroll Experts")  # Employee A and B
     assert set(_ids(client, {"team": experts})) == {"PP-BE-FRE-00001", e2}
 
-    review = _facet_id(client, "projects", "Quarterly Compliance Review")  # B and C
-    assert set(_ids(client, {"project": review})) == {e2, e3}
+    # Internal projects are not a search filter (spec FR-S5): the old parameter is ignored.
+    review = _facet_id(client, "teams", "Payroll Experts")
+    assert set(_ids(client, {"project": review})) == {"PP-BE-FRE-00001", e2, e3}
 
 
 def test_filters_narrow_without_changing_order(client):
@@ -120,4 +121,4 @@ def test_facets_endpoint(client):
     assert facets["verifier_roles"] == ["Manager", "Team Lead", "Senior Expert"]
     assert {"Employee A", "Employee B", "Employee C"} <= {a["name"] for a in facets["authors"]}
     assert "Payroll Experts" in {t["name"] for t in facets["teams"]}
-    assert "Freelancer DMFA Automation" in {p["name"] for p in facets["projects"]}
+    assert "projects" not in facets

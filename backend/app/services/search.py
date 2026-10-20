@@ -8,13 +8,14 @@ from app.models import (
     Category,
     Entry,
     EntryVersion,
-    Project,
-    ProjectMembership,
+    Tag,
     Team,
     TeamMembership,
     User,
     VersionStatus,
+    entry_tags,
 )
+from app.services.tags import normalize_tag
 
 # Filter value -> stored values (the data holds both the seed spelling and the API spelling).
 SCOPE_ALIASES = {
@@ -40,7 +41,7 @@ class SearchFilters:
     verifier_roles: list[str] = field(default_factory=list)
     author_ids: list[int] = field(default_factory=list)
     team_ids: list[int] = field(default_factory=list)
-    project_ids: list[int] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
     updated_from: date | None = None
     updated_to: date | None = None
 
@@ -108,9 +109,11 @@ def search_entries(
         q = q.filter(Entry.author_id.in_(
             select(TeamMembership.user_id).where(TeamMembership.team_id.in_(f.team_ids))
         ))
-    if f.project_ids:
-        q = q.filter(Entry.author_id.in_(
-            select(ProjectMembership.user_id).where(ProjectMembership.project_id.in_(f.project_ids))
+    if f.tags:
+        # Several tags are one filter, so they combine with OR; names are matched normalized.
+        wanted = [normalize_tag(t) for t in f.tags if normalize_tag(t)]
+        q = q.filter(Entry.id.in_(
+            select(entry_tags.c.entry_id).join(Tag, Tag.id == entry_tags.c.tag_id).where(Tag.name.in_(wanted))
         ))
     if f.updated_from:
         q = q.filter(Entry.updated_at >= datetime.combine(f.updated_from, time.min))
@@ -192,5 +195,4 @@ def search_facets(db: Session) -> dict:
         "verifier_roles": VERIFIER_ROLES,
         "authors": [{"id": u.id, "name": u.display_name} for u in authors],
         "teams": [{"id": t.id, "name": t.name} for t in db.query(Team).order_by(Team.name)],
-        "projects": [{"id": p.id, "name": p.name} for p in db.query(Project).order_by(Project.name)],
     }

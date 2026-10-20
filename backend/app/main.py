@@ -5,8 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
 from app.deps.auth import record_denied
-from app.routers import admin, approvals, auth, categories, contributions, entries, health, history, idp, notifications, outdated, people, pull_requests, search, similar, votes
-from app.seeds import finish_legacy_pull_requests, seed_all, seed_history_demo, seed_people, seed_settings
+from app.routers import admin, approvals, auth, categories, contributions, entries, health, history, idp, notifications, outdated, people, pull_requests, search, similar, tags, votes
+from app.seeds import finish_legacy_pull_requests, normalize_tags, seed_all, seed_history_demo, seed_people, seed_settings
 
 app = FastAPI(title=settings.app_name)
 
@@ -40,6 +40,7 @@ app.include_router(history.router)
 app.include_router(pull_requests.router)
 app.include_router(approvals.router)
 app.include_router(search.router)
+app.include_router(tags.router)
 app.include_router(votes.router)
 app.include_router(outdated.router)
 app.include_router(people.router)
@@ -54,3 +55,4 @@ def on_startup() -> None:
     finish_legacy_pull_requests()
     if settings.seed_history_demo:
         seed_history_demo()
+    normalize_tags()  # last: also tidies tags of entries seeded above

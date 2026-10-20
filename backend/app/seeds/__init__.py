@@ -37,12 +37,10 @@ def _load(name: str) -> list[dict]:
 
 
 def _tag(db: Session, name: str) -> Tag:
-    tag = db.query(Tag).filter(Tag.name == name).first()
-    if tag is None:
-        tag = Tag(name=name)
-        db.add(tag)
-        db.flush()
-    return tag
+    """Shared tag entity for a mock-data tag name (normalized; 'kind:value' names are automatic)."""
+    from app.services.tags import AUTOMATIC, KEYWORD, get_or_create_tag, is_automatic_name
+
+    return get_or_create_tag(db, name, AUTOMATIC if is_automatic_name(name) else KEYWORD)
 
 
 def _add_entry(db: Session, data: dict, users: dict[str, User], now: datetime) -> Entry:
@@ -76,7 +74,12 @@ def _add_entry(db: Session, data: dict, users: dict[str, User], now: datetime) -
     db.flush()
 
     for name in data.get("tags", []):
-        entry.tags.append(_tag(db, name))
+        tag = _tag(db, name)
+        if tag not in entry.tags:
+            entry.tags.append(tag)
+    from app.services.tags import add_auto_tags
+
+    add_auto_tags(db, entry, author)  # country, date, author, department, role (FR-E2)
 
     for number, v in enumerate(versions, start=1):
         version = EntryVersion(
@@ -160,6 +163,15 @@ def seed_all() -> None:
 
     seed_people()
     seed_settings()
+
+
+def normalize_tags() -> None:
+    """Bring tags created before tags were entities in line (names, types, country tags); idempotent."""
+    from app.services.tags import normalize_existing_tags
+
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        normalize_existing_tags(db)
 
 
 def finish_legacy_pull_requests() -> None:

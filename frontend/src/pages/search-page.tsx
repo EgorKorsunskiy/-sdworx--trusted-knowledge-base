@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/page-header"
 import { TrustBadge } from "@/components/trust-badge"
-import { api, SEARCH_DATE_KEYS, SEARCH_MULTI_KEYS, type SearchFacets } from "@/lib/api"
+import { TagList } from "@/components/tag-chip"
+import { api, normalizeTag, SEARCH_DATE_KEYS, SEARCH_MULTI_KEYS, type SearchFacets, type TagSuggestion } from "@/lib/api"
 
 type Option = { value: string; label: string }
 type MultiKey = (typeof SEARCH_MULTI_KEYS)[number]
@@ -19,7 +20,7 @@ const GROUP_TITLES: Record<MultiKey, string> = {
   verifier_role: "Verifier role",
   author: "Author",
   team: "Team",
-  project: "Project",
+  tag: "Tag",
 }
 
 const DATE_LABELS: Record<(typeof SEARCH_DATE_KEYS)[number], string> = {
@@ -40,8 +41,79 @@ function optionsFor(key: MultiKey, f: SearchFacets | null): Option[] {
     case "verifier_role": return plain(f.verifier_roles)
     case "author": return named(f.authors)
     case "team": return named(f.teams)
-    case "project": return named(f.projects)
+    case "tag": return [] // tags are picked with suggestions, see TagFilter
   }
+}
+
+/** Pick tags with suggestions of existing ones (FR-T2); selected tags are the `tag` URL values. */
+function TagFilter({ selected, onToggle }: { selected: string[]; onToggle: (name: string) => void }) {
+  const [text, setText] = useState("")
+  const [suggestions, setSuggestions] = useState<TagSuggestion[]>([])
+
+  useEffect(() => {
+    const q = text.trim()
+    if (!q) {
+      setSuggestions([])
+      return
+    }
+    const timer = setTimeout(() => {
+      api.tags.list(q, { limit: 8 }).then(setSuggestions).catch(() => setSuggestions([]))
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [text])
+
+  const add = (name: string) => {
+    const normalized = normalizeTag(name)
+    if (normalized && !selected.includes(normalized)) onToggle(normalized)
+    setText("")
+    setSuggestions([])
+  }
+
+  return (
+    <div>
+      <Input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            add(suggestions.find((s) => s.name === normalizeTag(text))?.name ?? text)
+          }
+        }}
+        placeholder="Find a tag…"
+        aria-label="Find a tag"
+        className="mt-1.5"
+      />
+      {suggestions.length > 0 && (
+        <ul className="mt-1 max-h-40 overflow-y-auto rounded-lg bg-white text-sm ring-1 ring-stone-200">
+          {suggestions.map((s) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={() => add(s.name)}
+                className="flex w-full items-center justify-between px-3 py-1.5 text-left hover:bg-stone-50"
+              >
+                <span>{s.name}</span>
+                <span className="text-xs text-stone-400">{s.entry_count}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {selected.map((name) => (
+          <button
+            key={name}
+            type="button"
+            onClick={() => onToggle(name)}
+            className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-700 hover:bg-stone-200"
+          >
+            {name} <X className="h-3 w-3" />
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function SearchPage() {
@@ -163,6 +235,14 @@ export function SearchPage() {
             {SEARCH_MULTI_KEYS.map((key) => {
               const options = optionsFor(key, facets)
               const selected = params.getAll(key)
+              if (key === "tag") {
+                return (
+                  <fieldset key={key}>
+                    <legend className="label">{GROUP_TITLES[key]}</legend>
+                    <TagFilter selected={selected} onToggle={(name) => toggleValue("tag", name)} />
+                  </fieldset>
+                )
+              }
               return (
                 <fieldset key={key}>
                   <legend className="label">{GROUP_TITLES[key]}</legend>
@@ -243,21 +323,21 @@ export function SearchPage() {
           <div className="p-8 text-center text-sm text-stone-500">No results.</div>
         ) : (
           results.map((entry) => (
-            <Link
-              key={entry.public_id}
-              to={`/entries/${entry.public_id}`}
-              className="block p-5 hover:bg-stone-50"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <h3 className="font-medium">{entry.current_version.title}</h3>
-                <span className="shrink-0 text-xs text-stone-400">{entry.public_id}</span>
-              </div>
-              <p className="mt-1 text-sm text-stone-500 line-clamp-2">{entry.current_version.body}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                <TrustBadge status={entry.current_version.status} />
-                <span className="text-stone-400">{entry.country} · {entry.department} · {entry.author.display_name}</span>
-              </div>
-            </Link>
+            // The tags are links too, so the row cannot be one big link (no nested anchors).
+            <div key={entry.public_id} className="p-5 hover:bg-stone-50">
+              <Link to={`/entries/${entry.public_id}`} className="block">
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="font-medium">{entry.current_version.title}</h3>
+                  <span className="shrink-0 text-xs text-stone-400">{entry.public_id}</span>
+                </div>
+                <p className="mt-1 text-sm text-stone-500 line-clamp-2">{entry.current_version.body}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                  <TrustBadge status={entry.current_version.status} />
+                  <span className="text-stone-400">{entry.country} · {entry.department} · {entry.author.display_name}</span>
+                </div>
+              </Link>
+              <TagList tags={entry.tags ?? []} className="mt-2" />
+            </div>
           ))
         )}
       </div>

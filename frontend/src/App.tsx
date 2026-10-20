@@ -36,6 +36,7 @@ function AppRoutes() {
             <AppShell>
               <Routes>
                 <Route path="/" element={<SearchPage />} />
+                <Route path="/search" element={<SearchPage />} />
                 <Route path="/add" element={<AddEntryPage />} />
                 <Route path="/entries/:publicId" element={<EntryPage />} />
                 <Route path="/entries/:publicId/suggest" element={<SuggestChangePage />} />

@@ -64,6 +64,7 @@ class TagOut(BaseModel):
 
     id: int
     name: str
+    tag_type: str = "keyword"
 
 
 class PersonBrief(BaseModel):
@@ -213,6 +214,7 @@ class ProfileEntryOut(BaseModel):
     public_id: str
     title: str
     status: str
+    tags: list[TagOut] = []
 
 
 class ProfileOut(BaseModel):

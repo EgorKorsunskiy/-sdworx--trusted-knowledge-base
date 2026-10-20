@@ -199,6 +199,8 @@ class Tag(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    # "keyword" (set by people) or "automatic" (country/date/author/department/role, set by the system)
+    tag_type: Mapped[str] = mapped_column(String(16), nullable=False, default="keyword")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

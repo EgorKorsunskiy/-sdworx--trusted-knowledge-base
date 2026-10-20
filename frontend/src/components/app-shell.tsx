@@ -34,7 +34,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <nav className="flex flex-wrap items-center gap-1 text-sm font-medium">
             {navItems.map((item) => {
-              const active = location.pathname === item.to || location.pathname.startsWith(item.to + "/")
+              const active =
+                location.pathname === item.to ||
+                location.pathname.startsWith(item.to + "/") ||
+                (item.to === "/" && location.pathname === "/search") // tag links open /search?tag=...
               return (
                 <Link
                   key={item.to}

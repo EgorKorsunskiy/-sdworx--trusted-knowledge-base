@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog } from "@/components/ui/dialog"
 import { TrustBadge } from "@/components/trust-badge"
+import { TagList } from "@/components/tag-chip"
 import { DiffView } from "@/components/diff-view"
 import { PRStatusBadge } from "@/components/pr-status-badge"
 import { ContributorBody } from "@/components/contributor-body"
@@ -208,8 +209,8 @@ export function EntryPage() {
           </div>
           <div className="flex justify-between py-3">
             <dt className="text-stone-500">Tags</dt>
-            <dd className="flex flex-wrap gap-1">
-              {entry.tags.map((t: any) => <Badge key={t.id} variant="neutral">{t.name}</Badge>)}
+            <dd className="max-w-[70%] justify-end">
+              <TagList tags={entry.tags} className="justify-end" />
             </dd>
           </div>
         </dl>

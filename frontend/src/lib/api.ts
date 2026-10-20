@@ -86,6 +86,12 @@ export type User = {
   teams: { id: number; name: string; department: string }[]
 }
 
+// Shared entity: "keyword" tags are set by people, "automatic" ones (country:be, author:..., ...) by the system.
+export type Tag = { id: number; name: string; tag_type: "keyword" | "automatic" | string }
+export type TagSuggestion = Tag & { entry_count: number }
+
+export const normalizeTag = (name: string) => name.trim().replace(/\s+/g, " ").toLowerCase()
+
 export type Category = {
   id: number
   name: string
@@ -122,7 +128,7 @@ export type Entry = {
   category?: { id: number; name: string; is_default?: boolean } | null
   author: User
   team?: { id: number; name: string; department: string } | null
-  tags: { id: number; name: string }[]
+  tags: Tag[]
   current_version: EntryVersion
   created_at: string
   updated_at: string
@@ -160,7 +166,7 @@ export type Profile = {
     end_date?: string | null
     ended: boolean
   }[]
-  entries: { public_id: string; title: string; status: string }[]
+  entries: { public_id: string; title: string; status: string; tags: Tag[] }[]
 }
 
 export type TeamDetail = {
@@ -355,7 +361,6 @@ export type SearchFacets = {
   verifier_roles: string[]
   authors: { id: number; name: string }[]
   teams: { id: number; name: string }[]
-  projects: { id: number; name: string }[]
 }
 
 // Query-string keys that can hold several values (OR within one filter).
@@ -368,7 +373,7 @@ export const SEARCH_MULTI_KEYS = [
   "verifier_role",
   "author",
   "team",
-  "project",
+  "tag",
 ] as const
 export const SEARCH_DATE_KEYS = ["updated_from", "updated_to"] as const
 
@@ -404,7 +409,21 @@ export const api = {
     markRead: (id: number) => fetchJson(`/notifications/${id}/read`, { method: "POST" }),
   },
   contributions: () => fetchJson<any>("/me/contributions"),
+  tags: {
+    // Existing tags matching `q` (most used first); used for suggestions while typing.
+    list: (q = "", opts: { type?: "keyword" | "automatic"; limit?: number } = {}) => {
+      const params = new URLSearchParams()
+      if (q) params.set("q", q)
+      if (opts.type) params.set("type", opts.type)
+      if (opts.limit) params.set("limit", String(opts.limit))
+      const qs = params.toString()
+      return fetchJson<TagSuggestion[]>(`/tags${qs ? `?${qs}` : ""}`)
+    },
+  },
   admin: {
+    renameTag: (id: number, name: string) => fetchJson<TagSuggestion>(`/admin/tags/${id}`, jsonBody("PATCH", { name })),
+    mergeTag: (id: number, intoId: number) =>
+      fetchJson<TagSuggestion>(`/admin/tags/${id}/merge`, jsonBody("POST", { into_id: intoId })),
     settings: () => fetchJson<any[]>("/admin/settings"),
     updateSetting: (key: string, value: string) => fetchJson(`/admin/settings/${key}?value=${encodeURIComponent(value)}`, { method: "PUT" }),
     mappings: () => fetchJson<any[]>("/admin/verifier-mappings"),

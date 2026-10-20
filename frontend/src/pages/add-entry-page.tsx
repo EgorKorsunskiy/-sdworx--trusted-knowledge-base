@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { api } from "@/lib/api"
+import { api, normalizeTag, type TagSuggestion } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,6 +13,7 @@ export function AddEntryPage() {
   const [error, setError] = useState("")
   const [keywords, setKeywords] = useState<string[]>([])
   const [keywordInput, setKeywordInput] = useState("")
+  const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [categoryId, setCategoryId] = useState(1)
   const [title, setTitle] = useState("")
@@ -64,10 +65,26 @@ export function AddEntryPage() {
     }
   }
 
-  const addKeyword = () => {
-    const value = keywordInput.trim().toLowerCase()
+  // Existing tags are suggested while typing; a new tag is only created when none matches (FR-T2).
+  useEffect(() => {
+    const q = keywordInput.trim()
+    if (!q) {
+      setTagSuggestions([])
+      return
+    }
+    const timer = setTimeout(() => {
+      api.tags.list(q, { type: "keyword", limit: 6 }).then(setTagSuggestions).catch(() => setTagSuggestions([]))
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [keywordInput])
+
+  const addKeyword = (raw: string = keywordInput) => {
+    const typed = normalizeTag(raw)
+    // Enter on text that matches an existing tag picks that tag instead of creating another
+    const value = tagSuggestions.find((s) => s.name === typed)?.name ?? typed
     if (value && !keywords.includes(value)) setKeywords([...keywords, value])
     setKeywordInput("")
+    setTagSuggestions([])
   }
 
   return (
@@ -146,8 +163,25 @@ export function AddEntryPage() {
           <label className="label">Keywords</label>
           <div className="mt-1.5 flex gap-2">
             <Input value={keywordInput} onChange={(e) => setKeywordInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addKeyword() } }} placeholder="Add a tag and press Enter" />
-            <Button type="button" variant="secondary" onClick={addKeyword}>Add</Button>
+            <Button type="button" variant="secondary" onClick={() => addKeyword()}>Add</Button>
           </div>
+          {tagSuggestions.filter((s) => !keywords.includes(s.name)).length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
+              Existing tags:
+              {tagSuggestions
+                .filter((s) => !keywords.includes(s.name))
+                .map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => addKeyword(s.name)}
+                    className="rounded-full bg-white px-2 py-0.5 text-stone-700 ring-1 ring-inset ring-stone-300 hover:bg-stone-100"
+                  >
+                    {s.name} <span className="text-stone-400">{s.entry_count}</span>
+                  </button>
+                ))}
+            </div>
+          )}
           <div className="mt-2 flex flex-wrap gap-2">
             {keywords.map((k) => <span key={k} className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">{k} <button type="button" onClick={() => setKeywords(keywords.filter((x) => x !== k))} className="text-stone-500 hover:text-stone-900">×</button></span>)}
           </div>

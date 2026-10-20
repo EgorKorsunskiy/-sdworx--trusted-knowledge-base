@@ -7,6 +7,7 @@ import { DiffView } from "@/components/diff-view"
 import { Link, useNavigate } from "react-router-dom"
 import { Badge } from "@/components/ui/badge"
 import { PRStatusBadge } from "@/components/pr-status-badge"
+import { TagList } from "@/components/tag-chip"
 
 export function ApprovalsPage() {
   const navigate = useNavigate()
@@ -104,6 +105,7 @@ export function ApprovalsPage() {
                 <TrustBadge status={item.version.status} />
               </div>
               <p className="mt-2 text-sm text-stone-700 line-clamp-3">{item.version.body}</p>
+              <TagList tags={item.entry.tags ?? []} className="mt-2" />
               {typeof diffs[item.version.id] === "object" && diffs[item.version.id] !== null && (
                 <div className="mt-3">
                   <DiffView diff={diffs[item.version.id] as EntryDiff} />

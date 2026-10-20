@@ -29,7 +29,7 @@ def search(
     verifier_role: list[str] | None = Query(None),
     author: list[int] | None = Query(None),
     team: list[int] | None = Query(None),
-    project: list[int] | None = Query(None),
+    tag: list[str] | None = Query(None),
     updated_from: date | None = Query(None),
     updated_to: date | None = Query(None),
     db: Session = Depends(get_db),
@@ -46,7 +46,7 @@ def search(
         verifier_roles=verifier_role or [],
         author_ids=author or [],
         team_ids=team or [],
-        project_ids=project or [],
+        tags=tag or [],
         updated_from=updated_from,
         updated_to=updated_to,
     )

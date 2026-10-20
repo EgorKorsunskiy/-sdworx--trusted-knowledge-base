@@ -5,6 +5,7 @@ import { ROLE_LABELS, formatPeriod } from "@/lib/people"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { TrustBadge } from "@/components/trust-badge"
+import { TagList } from "@/components/tag-chip"
 
 export function EmployeeProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -89,9 +90,12 @@ export function EmployeeProfilePage() {
         ) : (
           <ul className="mt-2 divide-y divide-stone-100">
             {profile.entries.map((e) => (
-              <li key={e.public_id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
-                <Link to={`/entries/${e.public_id}`} className="font-medium hover:underline">{e.title}</Link>
-                <TrustBadge status={e.status} />
+              <li key={e.public_id} className="px-5 py-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <Link to={`/entries/${e.public_id}`} className="font-medium hover:underline">{e.title}</Link>
+                  <TrustBadge status={e.status} />
+                </div>
+                <TagList tags={e.tags ?? []} className="mt-1.5" />
               </li>
             ))}
           </ul>

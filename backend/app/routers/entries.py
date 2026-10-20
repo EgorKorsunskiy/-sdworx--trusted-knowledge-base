@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.deps.auth import get_current_user, load_user, user_to_out
-from app.models import Category, Entry, EntryVersion, Notification, RoleType, Tag, User, VersionStatus
+from app.models import Category, Entry, EntryVersion, Notification, RoleType, User, VersionStatus
 from app.schemas import (
     EntryCreate,
     EntryDetailOut,
@@ -20,6 +20,7 @@ from app.services.permissions import (
     get_verifiers_for_entry,
     user_has_role,
 )
+from app.services import tags as tag_service
 from app.services.public_id import make_public_id
 
 router = APIRouter(prefix="/entries", tags=["entries"])
@@ -141,28 +142,13 @@ def _reload(db: Session, entry_id: int) -> Entry:
     return entry
 
 
-def _ensure_tag(db: Session, name: str) -> Tag:
-    tag = db.query(Tag).filter(Tag.name == name).first()
-    if tag is None:
-        tag = Tag(name=name)
-        db.add(tag)
-        db.flush()
-    return tag
-
-
-def _apply_auto_tags(db: Session, entry: Entry, user: User) -> None:
-    role = user.roles[0].role if user.roles else "employee"
-    auto = [
-        f"author:{user.display_name}",
-        f"department:{user.department or 'unknown'}",
-        f"role:{role}",
-        f"date:{datetime.utcnow().date().isoformat()}",
-    ]
-    existing = {t.name for t in entry.tags}
-    for name in auto:
-        if name not in existing:
-            entry.tags.append(_ensure_tag(db, name))
-            existing.add(name)
+def _set_keywords(db: Session, entry: Entry, keywords: list[str]) -> None:
+    """Link people-set keyword tags (shared, normalized entities); a bad name is a 422."""
+    try:
+        tag_service.add_keywords(db, entry, keywords)
+    except tag_service.TagError as exc:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @router.post("", response_model=EntryOut, status_code=status.HTTP_201_CREATED)
@@ -223,13 +209,8 @@ def create_entry(
     )
     db.add(version)
 
-    for kw in body.keywords:
-        name = kw.strip()
-        if not name:
-            continue
-        entry.tags.append(_ensure_tag(db, name))
-
-    _apply_auto_tags(db, entry, author)
+    _set_keywords(db, entry, body.keywords)
+    tag_service.add_auto_tags(db, entry, author)
 
     db.flush()
     # UC-1 step 4: verifiers in scope hear about the new entry (see get_verifiers_for_entry for the fallback).
@@ -321,15 +302,10 @@ def update_entry(
     current.change_note = "Updated draft"
 
     if body.keywords is not None:
-        # Keep auto-tags; replace keywords
-        auto_prefix = ("author:", "department:", "role:", "date:")
-        entry.tags = [t for t in entry.tags if t.name.startswith(auto_prefix)]
-        for kw in body.keywords:
-            name = kw.strip()
-            if not name:
-                continue
-            entry.tags.append(_ensure_tag(db, name))
-        _apply_auto_tags(db, entry, user)
+        # Keep the system's automatic tags; replace the keywords
+        entry.tags = [t for t in entry.tags if t.tag_type == tag_service.AUTOMATIC]
+        _set_keywords(db, entry, body.keywords)
+        tag_service.add_auto_tags(db, entry, user)
 
     entry.updated_at = datetime.utcnow()
     db.commit()

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { api, type ProjectDetail, type TeamDetail } from "@/lib/api"
+import { api, type ProjectDetail, type TagSuggestion, type TeamDetail } from "@/lib/api"
 import { formatPeriod } from "@/lib/people"
 import { PageHeader } from "@/components/page-header"
 import { Input, Select } from "@/components/ui/input"
@@ -176,8 +176,78 @@ function TeamsProjectsCard({ users }: { users: any[] }) {
             ))}
           </ul>
         </div>
-        <TeamsProjectsCard users={users} />
       </div>
+    </div>
+  )
+}
+
+/** Admins rename and merge keyword tags (FR-T5); all links to entries are kept. */
+function TagsCard() {
+  const [tags, setTags] = useState<TagSuggestion[]>([])
+  const [error, setError] = useState("")
+  const [renaming, setRenaming] = useState<number | null>(null)
+  const [newName, setNewName] = useState("")
+  const [mergeInto, setMergeInto] = useState<Record<number, string>>({})
+
+  const load = () => api.tags.list("", { type: "keyword", limit: 500 }).then(setTags).catch(console.error)
+  useEffect(() => { load() }, [])
+
+  const run = async (fn: () => Promise<unknown>) => {
+    setError("")
+    try {
+      await fn()
+      setRenaming(null)
+      await load()
+    } catch (e: any) {
+      setError(e.message || "Action failed")
+    }
+  }
+
+  return (
+    <div className="card">
+      <h3 className="text-sm font-semibold">Tags</h3>
+      <p className="mt-1 text-xs text-stone-500">
+        Keyword tags are shared by all entries. Renaming or merging keeps every entry link. Automatic tags (country,
+        date, author, department, role) are set by the system.
+      </p>
+      {error && <div className="mt-3 rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</div>}
+      <ul className="mt-3 divide-y divide-stone-100 text-sm">
+        {tags.length === 0 && <li className="py-2 text-stone-500">No keyword tags yet.</li>}
+        {tags.map((t) => (
+          <li key={t.id} className="flex flex-wrap items-center gap-2 py-2">
+            {renaming === t.id ? (
+              <>
+                <Input className="w-56" value={newName} onChange={(e) => setNewName(e.target.value)} />
+                <Button size="sm" onClick={() => run(() => api.admin.renameTag(t.id, newName))}>Save</Button>
+                <Button size="sm" variant="ghost" onClick={() => setRenaming(null)}>Cancel</Button>
+              </>
+            ) : (
+              <>
+                <span className="w-56 font-medium">{t.name}</span>
+                <span className="text-xs text-stone-400">{t.entry_count} {t.entry_count === 1 ? "entry" : "entries"}</span>
+                <Button size="sm" variant="ghost" onClick={() => { setRenaming(t.id); setNewName(t.name) }}>Rename</Button>
+                <Select
+                  className="w-auto"
+                  value={mergeInto[t.id] ?? ""}
+                  onChange={(e) => setMergeInto({ ...mergeInto, [t.id]: e.target.value })}
+                  aria-label={`Merge ${t.name} into`}
+                >
+                  <option value="">Merge into…</option>
+                  {tags.filter((o) => o.id !== t.id).map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                </Select>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={!mergeInto[t.id]}
+                  onClick={() => run(() => api.admin.mergeTag(t.id, Number(mergeInto[t.id])))}
+                >
+                  Merge
+                </Button>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -237,6 +307,7 @@ export function AdminPage() {
             {mappings.map((m) => <li key={m.id} className="py-2">{m.user_display_name} · {m.department}</li>)}
           </ul>
         </div>
+        <TagsCard />
         <TeamsProjectsCard users={users} />
       </div>
     </div>

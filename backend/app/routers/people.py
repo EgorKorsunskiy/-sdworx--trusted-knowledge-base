@@ -7,6 +7,7 @@ from app.database import get_db
 from app.deps.auth import get_current_user
 from app.models import Entry, Project, ProjectMembership, Team, TeamMembership, User
 from app.schemas import (
+    TagOut,
     ProfileEntryOut,
     ProfileOut,
     ProfileProjectOut,
@@ -130,7 +131,7 @@ def get_profile(user_id: int, db: Session = Depends(get_db)) -> ProfileOut:
     )
     entries = (
         db.query(Entry)
-        .options(joinedload(Entry.versions))
+        .options(joinedload(Entry.versions), joinedload(Entry.tags))
         .filter(Entry.author_id == user_id, Entry.is_published.is_(True))
         .order_by(Entry.updated_at.desc())
         .all()
@@ -171,7 +172,10 @@ def get_profile(user_id: int, db: Session = Depends(get_db)) -> ProfileOut:
         ],
         entries=[
             ProfileEntryOut(
-                public_id=e.public_id, title=e.versions[-1].title, status=e.versions[-1].status
+                public_id=e.public_id,
+                title=e.versions[-1].title,
+                status=e.versions[-1].status,
+                tags=[TagOut.model_validate(t) for t in e.tags],
             )
             for e in entries
             if e.versions

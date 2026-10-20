@@ -1,0 +1,115 @@
+{
+  "source": {
+    "id": "c3-freelance-onboarding",
+    "type": "chat",
+    "title": "Freelance onboarding — cross-team",
+    "date_from": "2026-10-05",
+    "date_to": "2026-10-12",
+    "day": "2026-10-05"
+  },
+  "participants": [
+    {
+      "email": "senior.expert@sdworx.example",
+      "display_name": "Senior Expert"
+    },
+    {
+      "email": "manager@sdworx.example",
+      "display_name": "Manager"
+    },
+    {
+      "email": "employee.a@sdworx.example",
+      "display_name": "Employee A"
+    },
+    {
+      "email": "employee.b@sdworx.example",
+      "display_name": "Employee B"
+    },
+    {
+      "email": "admin@sdworx.example",
+      "display_name": "Admin"
+    }
+  ],
+  "guests": [],
+  "generated_at": "2026-10-20T12:37:45+00:00",
+  "generator": {
+    "tool": "cursor-agent",
+    "model": "auto",
+    "session_id": "30730620-8f74-49aa-b758-115b13d19ba6",
+    "prompt_version": "2026-10-20.2"
+  },
+  "memes": [
+    {
+      "id": "c3-freelance-onboarding@2026-10-05#1",
+      "source": {
+        "type": "chat",
+        "title": "Freelance onboarding — cross-team",
+        "date_from": "2026-10-05",
+        "date_to": "2026-10-12"
+      },
+      "day": "2026-10-05",
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "responsible",
+        "source": null
+      },
+      "kind": "how-to",
+      "statement": "Every new freelancer is onboarded with this checklist: check the company number in the KBO/BCE public search; collect proof of affiliation with a social insurance fund; for foreign freelancers collect a Limosa L1 receipt and an A1 certificate; and obtain a signed contract without fixed working hours.",
+      "suggested": {
+        "title": "Freelancer onboarding checklist",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "freelancers",
+        "onboarding",
+        "checklist",
+        "limosa",
+        "kbo"
+      ],
+      "quotes": [
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "Proposal for the onboarding checklist for every new freelancer:",
+          "at": "c3-002"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "1. check the company number in the KBO/BCE public search",
+          "at": "c3-002"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "2. collect proof of affiliation with a social insurance fund",
+          "at": "c3-002"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "3. for foreign freelancers: Limosa L1 receipt and A1 certificate",
+          "at": "c3-002"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "4. signed contract without fixed working hours",
+          "at": "c3-002"
+        }
+      ],
+      "confirmed_by": [
+        {
+          "user": "manager@sdworx.example",
+          "quote": {
+            "text": "Approved — this is our checklist from now on.",
+            "at": "c3-003"
+          },
+          "basis_hint": null
+        }
+      ],
+      "confidence": 0.92,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "rejected": []
+}

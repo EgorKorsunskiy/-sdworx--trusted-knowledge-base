@@ -130,4 +130,26 @@ flowchart LR
 - Scope values: `country`, `eu`, `universal`
 - Public ID format: `PP-{CC}-{CAT}-{seq}` e.g. `PP-BE-FRE-00042`
 - Demo data lives in `backend/mock_data/*.json` (see its README); delete `backend/peerpoint.db` to reseed
-- Planned: AI parser for Teams meetings and group chats — see [specs/ai-parser/FUNCTIONAL_SPEC.md](specs/ai-parser/FUNCTIONAL_SPEC.md)
+- AI parser for Teams meetings and group chats — spec: [specs/ai-parser/FUNCTIONAL_SPEC.md](specs/ai-parser/FUNCTIONAL_SPEC.md); output and usage: [backend/memes/README.md](backend/memes/README.md)
+
+## AI parser (Cursor CLI)
+
+The parser runs the Cursor CLI headless, so the machine running the backend needs it once:
+
+```bash
+curl https://cursor.com/install -fsS | bash
+```
+
+```bash
+agent login
+```
+
+Instead of `agent login`, export `CURSOR_API_KEY` in the shell that starts the backend. Optional environment variables: `CURSOR_MODEL` (see `agent models`; default: `auto`), `CURSOR_CLI_PATH`, `CURSOR_TIMEOUT_S`.
+
+```bash
+cd backend && .venv/bin/python -m app.ai_parser --all
+```
+
+This writes the agent's memes for all mock sources into `backend/memes/`, to compare them with the expected memes (`python -m app.ai_parser.eval`). The demo database is filled from the expected memes instead (`seed_parser_demo`).
+
+Flow for real sources: a participant uploads the transcript or chat export with `POST /parser/sources` (multipart: `file`, `type` = `meeting` | `chat`, and for meetings `title`, `date`, `participant_ids`); the agent runs in the background (`GET /parser/runs/{id}` shows the status); the memes are stored through the Information overview's import, every speaker and confirmer gets their own suggestion, and all participants a notification. The suggestions are then decided on the Information overview page (`/information`).

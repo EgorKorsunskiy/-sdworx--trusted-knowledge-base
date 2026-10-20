@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
 from app.deps.auth import record_denied
-from app.routers import admin, approvals, auth, categories, companies, contributions, entries, health, history, idp, information, notifications, outdated, people, pull_requests, responsibilities, search, similar, tags, votes
+from app.routers import admin, approvals, auth, categories, companies, contributions, entries, health, history, idp, information, notifications, outdated, parser, people, pull_requests, responsibilities, search, similar, tags, votes
 from app.seeds import backfill_contacts, finish_legacy_pull_requests, normalize_tags, seed_all, seed_companies, seed_history_demo, seed_parser_demo, seed_people, seed_settings
 
 app = FastAPI(title=settings.app_name)
@@ -47,6 +47,7 @@ app.include_router(outdated.router)
 app.include_router(people.router)
 app.include_router(information.router)
 app.include_router(responsibilities.router)
+app.include_router(parser.router)
 
 
 @app.on_event("startup")

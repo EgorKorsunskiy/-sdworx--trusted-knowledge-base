@@ -35,3 +35,6 @@ frontend/*.tsbuildinfo
 .vscode/
 *.swp
 .DS_Store
+
+# AI parser uploads (raw transcripts and chat exports are not kept, BR-M7)
+backend/memes/_uploads/

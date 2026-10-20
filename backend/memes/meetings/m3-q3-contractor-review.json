@@ -1,0 +1,221 @@
+{
+  "source": {
+    "id": "m3-q3-contractor-review",
+    "type": "meeting",
+    "title": "Q3 contractor payroll review",
+    "date": "2026-10-01"
+  },
+  "participants": [
+    {
+      "email": "employee.a@sdworx.example",
+      "display_name": "Employee A"
+    },
+    {
+      "email": "employee.b@sdworx.example",
+      "display_name": "Employee B"
+    },
+    {
+      "email": "manager@sdworx.example",
+      "display_name": "Manager"
+    },
+    {
+      "email": "senior.expert@sdworx.example",
+      "display_name": "Senior Expert"
+    },
+    {
+      "email": "team.lead@sdworx.example",
+      "display_name": "Team Lead"
+    }
+  ],
+  "guests": [],
+  "generated_at": "2026-10-20T12:35:27+00:00",
+  "generator": {
+    "tool": "cursor-agent",
+    "model": "auto",
+    "session_id": "ca2da1cd-1b6b-4367-9877-6eccd00c55e5",
+    "prompt_version": "2026-10-20.2"
+  },
+  "memes": [
+    {
+      "id": "m3-q3-contractor-review#1",
+      "source": {
+        "type": "meeting",
+        "title": "Q3 contractor payroll review",
+        "date": "2026-10-01"
+      },
+      "speaker": "team.lead@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "responsible",
+        "source": null
+      },
+      "kind": "how-to",
+      "statement": "Before paying a contractor invoice, search the payment log by the invoice number and the contractor's VAT number; if either is already there, stop and check before paying.",
+      "suggested": {
+        "title": "Check payment log before contractor payment",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "contractor",
+        "invoices",
+        "payment-log",
+        "duplicate-payments"
+      ],
+      "quotes": [
+        {
+          "speaker": "team.lead@sdworx.example",
+          "text": "What I would like everyone to do from now on: before paying a contractor invoice, search the payment log by the invoice number and the contractor's VAT number.",
+          "at": "00:15:00"
+        },
+        {
+          "speaker": "team.lead@sdworx.example",
+          "text": "If either one is already there, stop and check before paying.",
+          "at": "00:15:12"
+        }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.9,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "id": "m3-q3-contractor-review#2",
+      "source": {
+        "type": "meeting",
+        "title": "Q3 contractor payroll review",
+        "date": "2026-10-01"
+      },
+      "speaker": "manager@sdworx.example",
+      "speaker_basis_hint": null,
+      "kind": "decision",
+      "statement": "Every contractor invoice above five thousand euros gets a four-eyes check, starting with the November run.",
+      "suggested": {
+        "title": "Four-eyes check above €5,000",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "contractor",
+        "invoices",
+        "four-eyes",
+        "approval"
+      ],
+      "quotes": [
+        {
+          "speaker": "manager@sdworx.example",
+          "text": "Ok, ok. So, decision: every contractor invoice above five thousand euros gets a four-eyes check, starting with the November run.",
+          "at": "00:22:33"
+        }
+      ],
+      "confirmed_by": [
+        {
+          "user": "team.lead@sdworx.example",
+          "quote": {
+            "text": "Agreed, I'll make sure the team applies it.",
+            "at": "00:22:43"
+          },
+          "basis_hint": {
+            "basis": "responsible",
+            "source": null
+          }
+        }
+      ],
+      "confidence": 0.92,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "id": "m3-q3-contractor-review#3",
+      "source": {
+        "type": "meeting",
+        "title": "Q3 contractor payroll review",
+        "date": "2026-10-01"
+      },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": null,
+      "kind": "fact",
+      "statement": "Freelancers are not declared in the DmfA; the DmfA is the employer declaration and is only for employees.",
+      "suggested": {
+        "title": "DmfA covers employees only",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "dmfa",
+        "freelancers",
+        "employees"
+      ],
+      "quotes": [
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "Sorry, I have to correct that: freelancers are not declared in the DmfA, that's the employer declaration for employees.",
+          "at": "00:38:08"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "I understand the confusion, but the DmfA is only for employees. I can send you the reference.",
+          "at": "00:38:25"
+        }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.a@sdworx.example",
+          "quote": {
+            "text": "Hm. You're right, I mixed that up in the entry.",
+            "at": "00:38:31"
+          },
+          "basis_hint": null
+        }
+      ],
+      "confidence": 0.93,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "id": "m3-q3-contractor-review#4",
+      "source": {
+        "type": "meeting",
+        "title": "Q3 contractor payroll review",
+        "date": "2026-10-01"
+      },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": null,
+      "kind": "fact",
+      "statement": "Self-employed people pay their contributions through their social insurance fund.",
+      "suggested": {
+        "title": "Self-employed contributions via social insurance fund",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "freelancers",
+        "social-insurance",
+        "contributions"
+      ],
+      "quotes": [
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "Self-employed people pay their contributions through their social insurance fund.",
+          "at": "00:38:16"
+        }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.9,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "rejected": []
+}

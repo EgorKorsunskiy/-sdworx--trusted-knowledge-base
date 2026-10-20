@@ -1,0 +1,104 @@
+{
+  "source": {
+    "id": "c2-contractor-announcements",
+    "type": "chat",
+    "title": "Contractor payroll — announcements",
+    "date_from": "2026-09-22",
+    "date_to": "2026-10-16",
+    "day": "2026-09-29"
+  },
+  "participants": [
+    {
+      "email": "team.lead@sdworx.example",
+      "display_name": "Team Lead"
+    },
+    {
+      "email": "manager@sdworx.example",
+      "display_name": "Manager"
+    },
+    {
+      "email": "employee.a@sdworx.example",
+      "display_name": "Employee A"
+    },
+    {
+      "email": "employee.b@sdworx.example",
+      "display_name": "Employee B"
+    },
+    {
+      "email": "employee.c@sdworx.example",
+      "display_name": "Employee C"
+    }
+  ],
+  "guests": [],
+  "generated_at": "2026-10-20T12:36:50+00:00",
+  "generator": {
+    "tool": "cursor-agent",
+    "model": "auto",
+    "session_id": "94396c7a-8e05-4e01-aaa3-422854964eb6",
+    "prompt_version": "2026-10-20.2"
+  },
+  "memes": [
+    {
+      "id": "c2-contractor-announcements@2026-09-29#1",
+      "source": {
+        "type": "chat",
+        "title": "Contractor payroll — announcements",
+        "date_from": "2026-09-22",
+        "date_to": "2026-10-16"
+      },
+      "day": "2026-09-29",
+      "speaker": "team.lead@sdworx.example",
+      "speaker_basis_hint": null,
+      "kind": "rule",
+      "statement": "The cut-off for contractor invoices, including invoices from umbrella companies, remains the 20th for the October run and moves to the 25th from the November run.",
+      "suggested": {
+        "title": "Contractor invoice cut-off from November",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "cut-off",
+        "contractor",
+        "invoices",
+        "umbrella"
+      ],
+      "quotes": [
+        {
+          "speaker": "team.lead@sdworx.example",
+          "text": "from the October run, the cut-off for contractor invoices moves from the 20th to the 25th",
+          "at": "c2-001"
+        },
+        {
+          "speaker": "team.lead@sdworx.example",
+          "text": "yes, same rule for umbrella companies.",
+          "at": "c2-004"
+        },
+        {
+          "speaker": "team.lead@sdworx.example",
+          "text": "Update: Finance postponed it — October stays on the 20th, the 25th applies from the November run.",
+          "at": "c2-007"
+        }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.c@sdworx.example",
+          "quote": {
+            "text": "Klopt, dat stond ook in de payroll nieuwsbrief van september.",
+            "at": "c2-005"
+          },
+          "basis_hint": {
+            "basis": "relayed",
+            "source": "payroll nieuwsbrief van september"
+          }
+        }
+      ],
+      "confidence": 0.9,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "rejected": []
+}

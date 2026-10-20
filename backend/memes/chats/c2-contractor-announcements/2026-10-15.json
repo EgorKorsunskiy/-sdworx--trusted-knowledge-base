@@ -1,0 +1,86 @@
+{
+  "source": {
+    "id": "c2-contractor-announcements",
+    "type": "chat",
+    "title": "Contractor payroll — announcements",
+    "date_from": "2026-09-22",
+    "date_to": "2026-10-16",
+    "day": "2026-10-15"
+  },
+  "participants": [
+    {
+      "email": "team.lead@sdworx.example",
+      "display_name": "Team Lead"
+    },
+    {
+      "email": "manager@sdworx.example",
+      "display_name": "Manager"
+    },
+    {
+      "email": "employee.a@sdworx.example",
+      "display_name": "Employee A"
+    },
+    {
+      "email": "employee.b@sdworx.example",
+      "display_name": "Employee B"
+    },
+    {
+      "email": "employee.c@sdworx.example",
+      "display_name": "Employee C"
+    }
+  ],
+  "guests": [],
+  "generated_at": "2026-10-20T12:36:50+00:00",
+  "generator": {
+    "tool": "cursor-agent",
+    "model": "auto",
+    "session_id": "94396c7a-8e05-4e01-aaa3-422854964eb6",
+    "prompt_version": "2026-10-20.2"
+  },
+  "memes": [
+    {
+      "id": "c2-contractor-announcements@2026-10-15#1",
+      "source": {
+        "type": "chat",
+        "title": "Contractor payroll — announcements",
+        "date_from": "2026-09-22",
+        "date_to": "2026-10-16"
+      },
+      "day": "2026-10-15",
+      "speaker": "manager@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "relayed",
+        "source": "Finance"
+      },
+      "kind": "rule",
+      "statement": "For the December run, the cut-off for contractor invoices is exceptionally the 18th because of the holidays.",
+      "suggested": {
+        "title": "December contractor invoice cut-off exception",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "cut-off",
+        "contractor",
+        "invoices",
+        "december",
+        "holidays"
+      ],
+      "quotes": [
+        {
+          "speaker": "manager@sdworx.example",
+          "text": "Heads-up from Finance: for the December run the cut-off is exceptionally the 18th because of the holidays.",
+          "at": "c2-011"
+        }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.9,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "rejected": []
+}

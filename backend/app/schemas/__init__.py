@@ -510,3 +510,14 @@ class PullRequestOut(PullRequestBrief):
 class PendingPROut(PullRequestBrief):
     step: Literal["author", "verifier"]
     entry: PREntryRef
+
+
+class AcceptAuthorship(BaseModel):
+    """Accepting an authorship request states the basis (FR-MO15)."""
+
+    basis: Literal["responsible", "relayed"]
+    source: str | None = None
+
+
+class DeclineAuthorship(BaseModel):
+    reason: Literal["not_relevant", "incorrect", "not_mine"] | None = None

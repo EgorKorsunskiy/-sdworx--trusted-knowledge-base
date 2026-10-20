@@ -5,8 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
 from app.deps.auth import record_denied
-from app.routers import admin, approvals, auth, categories, contributions, entries, health, history, idp, notifications, outdated, people, pull_requests, search, similar, votes
-from app.seeds import finish_legacy_pull_requests, seed_all, seed_history_demo, seed_people, seed_settings
+from app.routers import admin, approvals, auth, categories, contributions, entries, health, history, idp, memes, notifications, outdated, parser, people, pull_requests, search, similar, votes
+from app.seeds import finish_legacy_pull_requests, seed_all, seed_demo_memes, seed_history_demo, seed_people, seed_settings
 
 app = FastAPI(title=settings.app_name)
 
@@ -43,6 +43,8 @@ app.include_router(search.router)
 app.include_router(votes.router)
 app.include_router(outdated.router)
 app.include_router(people.router)
+app.include_router(parser.router)
+app.include_router(memes.router)
 
 
 @app.on_event("startup")
@@ -54,3 +56,5 @@ def on_startup() -> None:
     finish_legacy_pull_requests()
     if settings.seed_history_demo:
         seed_history_demo()
+    if settings.seed_demo_memes:
+        seed_demo_memes()

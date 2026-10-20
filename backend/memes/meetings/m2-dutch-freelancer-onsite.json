@@ -1,0 +1,226 @@
+{
+  "source": {
+    "id": "m2-dutch-freelancer-onsite",
+    "type": "meeting",
+    "title": "Dutch freelancer on-site in Belgium",
+    "date": "2026-10-08"
+  },
+  "participants": [
+    {
+      "email": "employee.a@sdworx.example",
+      "display_name": "Employee A"
+    },
+    {
+      "email": "employee.c@sdworx.example",
+      "display_name": "Employee C"
+    },
+    {
+      "email": "senior.expert@sdworx.example",
+      "display_name": "Senior Expert"
+    }
+  ],
+  "guests": [
+    "Lotte (Guest)"
+  ],
+  "generated_at": "2026-10-20T12:35:02+00:00",
+  "generator": {
+    "tool": "cursor-agent",
+    "model": "auto",
+    "session_id": "7330279e-da6b-4a45-8f3a-51380310f645",
+    "prompt_version": "2026-10-20.2"
+  },
+  "memes": [
+    {
+      "id": "m2-dutch-freelancer-onsite#1",
+      "source": {
+        "type": "meeting",
+        "title": "Dutch freelancer on-site in Belgium",
+        "date": "2026-10-08"
+      },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "responsible",
+        "source": null
+      },
+      "kind": "rule",
+      "statement": "For a foreign self-employed person working on-site in Belgium, the Limosa declaration must be done before the first working day and the client should ask for the L1 receipt; if work starts without it, the client can get into trouble as well.",
+      "suggested": {
+        "title": "Limosa and L1 before first working day",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "limosa",
+        "l1",
+        "cross-border",
+        "freelancer"
+      ],
+      "quotes": [
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "There are three things to look at. First, the Lima so declaration — it has to be done before the first working day, and you, as the client, should ask for the L1 receipt.",
+          "at": "00:08:20"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "If he starts without it, the client can get into trouble too, not only him.",
+          "at": "00:08:34"
+        }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.a@sdworx.example",
+          "quote": {
+            "text": "Yes, exactly — we had the same with a German freelancer in spring, I checked it on the Limosa portal then.",
+            "at": "00:08:41"
+          },
+          "basis_hint": {
+            "basis": "responsible",
+            "source": null
+          }
+        }
+      ],
+      "confidence": 0.9,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "id": "m2-dutch-freelancer-onsite#2",
+      "source": {
+        "type": "meeting",
+        "title": "Dutch freelancer on-site in Belgium",
+        "date": "2026-10-08"
+      },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "responsible",
+        "source": null
+      },
+      "kind": "rule",
+      "statement": "A Dutch self-employed person working in Belgium must request an A1 certificate from the Dutch social security office showing they remain insured in the Netherlands; without an A1 there is a risk of paying social security contributions in both countries. It can take a few weeks, so it should be obtained before the first working day.",
+      "suggested": {
+        "title": "A1 certificate before starting in Belgium",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "eu",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "a1",
+        "cross-border",
+        "social-security",
+        "freelancer"
+      ],
+      "quotes": [
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "Second, the a one certificate. He requests it from the Dutch social security office, and it shows that he stays insured in the Netherlands.",
+          "at": "00:14:00"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "Without the a one, there is a risk that he has to pay contributions in both countries.",
+          "at": "00:14:12"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "No. So ask him for it early, it can take a few weeks.",
+          "at": "00:14:23"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "Exactly.",
+          "at": "00:33:06"
+        }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.88,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "id": "m2-dutch-freelancer-onsite#3",
+      "source": {
+        "type": "meeting",
+        "title": "Dutch freelancer on-site in Belgium",
+        "date": "2026-10-08"
+      },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "responsible",
+        "source": null
+      },
+      "kind": "fact",
+      "statement": "When a client requires a freelancer to work fixed hours or to report to the team daily, the arrangement creates a risk of schijnzelfstandigheid (bogus self-employment).",
+      "suggested": {
+        "title": "Fixed hours and bogus self-employment risk",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "schijnzelfstandigheid",
+        "freelancer",
+        "bogus-self-employment"
+      ],
+      "quotes": [
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "Ok, that's an important point. That sounds more like an employee than a freelancer — that's the schijn zelf standig heid risk, bogus self-employment.",
+          "at": "00:24:10"
+        }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.9,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "id": "m2-dutch-freelancer-onsite#4",
+      "source": {
+        "type": "meeting",
+        "title": "Dutch freelancer on-site in Belgium",
+        "date": "2026-10-08"
+      },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "responsible",
+        "source": null
+      },
+      "kind": "rule",
+      "statement": "Whenever a client sets fixed hours or gives instructions to a freelancer, the case must be flagged to a Senior Expert before the contract is signed.",
+      "suggested": {
+        "title": "Flag fixed-hour freelancer cases to Senior Expert",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "freelancer",
+        "schijnzelfstandigheid",
+        "escalation",
+        "contract"
+      ],
+      "quotes": [
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "Internally, our rule is: whenever a client sets fixed hours or gives instructions to a freelancer, the case is flagged to a Senior Expert before the contract is signed.",
+          "at": "00:24:22"
+        }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.92,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "rejected": []
+}

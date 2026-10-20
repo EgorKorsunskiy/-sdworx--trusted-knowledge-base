@@ -299,6 +299,8 @@ Both agents return a list of memes in the same format. The backend validates it,
 
 For the demo, sample sources go into `backend/mock_data/` next to the other mock data; the six demo scenarios (three meetings, three group chats) with their expected memes are described in [MOCK_SCENARIOS.md](MOCK_SCENARIOS.md).
 
+**Implementation (parser MVP).** Both agents are one backend pipeline (`backend/app/ai_parser`) that runs the Cursor CLI headless and read-only on the rendered source, validates its answer against this contract (exact quotes, participants, confirmation order) with one repair round, and writes one JSON file per meeting or per chat day to `backend/memes/` — see its [README](../../backend/memes/README.md). A chat meme belongs to the day of its latest quote.
+
 ## 7. Use cases
 
 ### UC-M1 Import a meeting transcript

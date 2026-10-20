@@ -1,0 +1,94 @@
+{
+  "source": {
+    "id": "c3-freelance-onboarding",
+    "type": "chat",
+    "title": "Freelance onboarding — cross-team",
+    "date_from": "2026-10-05",
+    "date_to": "2026-10-12",
+    "day": "2026-10-07"
+  },
+  "participants": [
+    {
+      "email": "senior.expert@sdworx.example",
+      "display_name": "Senior Expert"
+    },
+    {
+      "email": "manager@sdworx.example",
+      "display_name": "Manager"
+    },
+    {
+      "email": "employee.a@sdworx.example",
+      "display_name": "Employee A"
+    },
+    {
+      "email": "employee.b@sdworx.example",
+      "display_name": "Employee B"
+    },
+    {
+      "email": "admin@sdworx.example",
+      "display_name": "Admin"
+    }
+  ],
+  "guests": [],
+  "generated_at": "2026-10-20T12:37:45+00:00",
+  "generator": {
+    "tool": "cursor-agent",
+    "model": "auto",
+    "session_id": "30730620-8f74-49aa-b758-115b13d19ba6",
+    "prompt_version": "2026-10-20.2"
+  },
+  "memes": [
+    {
+      "id": "c3-freelance-onboarding@2026-10-07#1",
+      "source": {
+        "type": "chat",
+        "title": "Freelance onboarding — cross-team",
+        "date_from": "2026-10-05",
+        "date_to": "2026-10-12"
+      },
+      "day": "2026-10-07",
+      "speaker": "admin@sdworx.example",
+      "speaker_basis_hint": null,
+      "kind": "rule",
+      "statement": "Personal data must never be put in chats; onboarding documents are uploaded to the HR portal only.",
+      "suggested": {
+        "title": "Onboarding docs only via HR portal",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "gdpr",
+        "onboarding",
+        "hr-portal",
+        "personal-data"
+      ],
+      "quotes": [
+        {
+          "speaker": "admin@sdworx.example",
+          "text": "personal data never goes into chats. Onboarding documents are uploaded to the HR portal only.",
+          "at": "c3-012"
+        }
+      ],
+      "confirmed_by": [
+        {
+          "user": "manager@sdworx.example",
+          "quote": {
+            "text": "Correct, that's our GDPR policy.",
+            "at": "c3-013"
+          },
+          "basis_hint": {
+            "basis": "relayed",
+            "source": "GDPR policy"
+          }
+        }
+      ],
+      "confidence": 0.9,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "rejected": []
+}

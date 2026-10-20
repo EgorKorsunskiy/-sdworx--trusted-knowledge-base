@@ -246,5 +246,35 @@ def seed_history_demo() -> None:
             print(f"Seeded history demo entry {public_id}.")
 
 
+
+def seed_demo_memes() -> None:
+    """Demo memes from backend/memes/ (agent output for the mock sources) into the database (idempotent).
+
+    Real uploads never touch these files: the parser stores their memes in the database directly."""
+    from app import config
+    from app.ai_parser.store import save_memes
+    from app.models import MemeSource
+
+    groups = [[f] for f in sorted((config.MEMES_DIR / "meetings").glob("*.json"))]
+    groups += [sorted(d.glob("*.json")) for d in sorted((config.MEMES_DIR / "chats").glob("*")) if d.is_dir()]
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        for files in filter(None, groups):
+            payloads = [json.loads(f.read_text(encoding="utf-8")) for f in files]
+            head = payloads[0]["source"]
+            if db.query(MemeSource).filter(MemeSource.key == head["id"]).first():
+                continue
+            memes = [{**m, **({"day": p["source"]["day"]} if "day" in p["source"] else {})} for p in payloads for m in p["memes"]]
+            save_memes(
+                db,
+                key=head["id"], type=head["type"], title=head["title"],
+                participants=[x["email"] for x in payloads[0]["participants"]], memes=memes,
+                meeting_date=date.fromisoformat(head["date"]) if head.get("date") else None,
+                date_from=date.fromisoformat(head["date_from"]) if head.get("date_from") else None,
+                date_to=date.fromisoformat(head["date_to"]) if head.get("date_to") else None,
+                generator=payloads[0].get("generator"),
+            )
+            print(f"Seeded demo memes of {head['id']}.")
+
 if __name__ == "__main__":
     seed_all()

@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "peerpoint.db"
 MOCK_DATA_DIR = BASE_DIR / "mock_data"
+MEMES_DIR = BASE_DIR / "memes"
 
 
 class Settings(BaseSettings):
@@ -44,6 +45,15 @@ class Settings(BaseSettings):
     demo_mode: bool = True
     # Seed a 3-version demo entry (tag history-demo) to show the change log and diffs.
     seed_history_demo: bool = True
+    # Load the demo memes in backend/memes/ (agent output for the mock sources) into the database.
+    seed_demo_memes: bool = True
+
+    # AI parser: the Cursor CLI ("agent") turns transcripts and chats into memes under MEMES_DIR.
+    # Authenticates with CURSOR_API_KEY from the environment or an `agent login` session.
+    cursor_cli_path: str = "agent"
+    # Always passed as --model: without it the CLI reuses its last or the account's model. See `agent models`.
+    cursor_model: str = "auto"
+    cursor_timeout_s: int = 600
 
 
 settings = Settings()

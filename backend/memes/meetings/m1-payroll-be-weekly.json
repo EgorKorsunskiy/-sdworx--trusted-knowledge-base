@@ -1,0 +1,200 @@
+{
+  "source": {
+    "id": "m1-payroll-be-weekly",
+    "type": "meeting",
+    "title": "Payroll BE weekly",
+    "date": "2026-10-14"
+  },
+  "participants": [
+    {
+      "email": "employee.a@sdworx.example",
+      "display_name": "Employee A"
+    },
+    {
+      "email": "employee.b@sdworx.example",
+      "display_name": "Employee B"
+    },
+    {
+      "email": "employee.c@sdworx.example",
+      "display_name": "Employee C"
+    },
+    {
+      "email": "manager@sdworx.example",
+      "display_name": "Manager"
+    },
+    {
+      "email": "team.lead@sdworx.example",
+      "display_name": "Team Lead"
+    }
+  ],
+  "guests": [],
+  "generated_at": "2026-10-20T12:33:42+00:00",
+  "generator": {
+    "tool": "cursor-agent",
+    "model": "auto",
+    "session_id": "9100c60b-9a5b-4923-915f-94db71a4c7aa",
+    "prompt_version": "2026-10-20.2"
+  },
+  "memes": [
+    {
+      "id": "m1-payroll-be-weekly#1",
+      "source": {
+        "type": "meeting",
+        "title": "Payroll BE weekly",
+        "date": "2026-10-14"
+      },
+      "speaker": "employee.a@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "responsible",
+        "source": null
+      },
+      "kind": "rule",
+      "statement": "Contractor invoices that arrive after the 25th go into the next month's payroll run.",
+      "suggested": {
+        "title": "Contractor invoice cut-off on the 25th",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "cut-off",
+        "invoices",
+        "contractors",
+        "payroll"
+      ],
+      "quotes": [
+        {
+          "speaker": "employee.a@sdworx.example",
+          "text": "Right. So anything that comes in after the twentieth — no, sorry, the twenty-fifth — goes into next month's run.",
+          "at": "00:12:31"
+        },
+        {
+          "speaker": "employee.a@sdworx.example",
+          "text": "Exactly. So for the November run, if it arrives on the twenty-sixth, it's December.",
+          "at": "00:12:46"
+        }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.c@sdworx.example",
+          "quote": {
+            "text": "Yes, that's right, it was in the payroll newsletter in September.",
+            "at": "00:12:40"
+          },
+          "basis_hint": {
+            "basis": "relayed",
+            "source": "Payroll newsletter in September"
+          }
+        }
+      ],
+      "confidence": 0.92,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "id": "m1-payroll-be-weekly#2",
+      "source": {
+        "type": "meeting",
+        "title": "Payroll BE weekly",
+        "date": "2026-10-14"
+      },
+      "speaker": "team.lead@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "responsible",
+        "source": null
+      },
+      "kind": "rule",
+      "statement": "An urgent contractor invoice after the cut-off can still be paid only with the Team Lead's approval by e-mail before the run is closed; without that e-mail there is no off-cycle payment.",
+      "suggested": {
+        "title": "Off-cycle payment needs Team Lead e-mail",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "cut-off",
+        "invoices",
+        "off-cycle",
+        "approval"
+      ],
+      "quotes": [
+        {
+          "speaker": "team.lead@sdworx.example",
+          "text": "So, an urgent invoice after the cut-off can still be paid, but only with my approval by e-mail before the run is closed.",
+          "at": "00:15:05"
+        },
+        {
+          "speaker": "team.lead@sdworx.example",
+          "text": "No e-mail, no off-cycle payment. Otherwise we're back to the chaos of last month.",
+          "at": "00:15:14"
+        }
+      ],
+      "confirmed_by": [
+        {
+          "user": "manager@sdworx.example",
+          "quote": {
+            "text": "Yes, that's how we agreed it with Finance.",
+            "at": "00:15:20"
+          },
+          "basis_hint": {
+            "basis": "relayed",
+            "source": "Finance"
+          }
+        }
+      ],
+      "confidence": 0.93,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "id": "m1-payroll-be-weekly#3",
+      "source": {
+        "type": "meeting",
+        "title": "Payroll BE weekly",
+        "date": "2026-10-14"
+      },
+      "speaker": "employee.b@sdworx.example",
+      "speaker_basis_hint": {
+        "basis": "relayed",
+        "source": "Finance"
+      },
+      "kind": "rule",
+      "statement": "Before the first payment to a new contractor, the contractor's VAT number must be checked in VIES by entering it on the European VIES site.",
+      "suggested": {
+        "title": "Check new contractor VAT in VIES",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "vat",
+        "vies",
+        "contractors",
+        "verification"
+      ],
+      "quotes": [
+        {
+          "speaker": "employee.b@sdworx.example",
+          "text": "One more thing from my side. Since the fake invoice at the Antwerp team last month, Finance asked everyone to check a new contractor's VAT number in vies before the first payment.",
+          "at": "00:19:40"
+        },
+        {
+          "speaker": "employee.b@sdworx.example",
+          "text": "It takes like one minute, you just enter the number on the European site.",
+          "at": "00:19:52"
+        }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.88,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "rejected": []
+}

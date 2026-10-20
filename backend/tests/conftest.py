@@ -27,6 +27,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(db_mod, "engine", engine)
     monkeypatch.setattr(seeds_mod, "engine", engine)
     monkeypatch.setattr(settings, "seed_history_demo", False)
+    monkeypatch.setattr(settings, "seed_demo_memes", False)
 
     with TestingSession() as db:
         # inline seed using shared engine

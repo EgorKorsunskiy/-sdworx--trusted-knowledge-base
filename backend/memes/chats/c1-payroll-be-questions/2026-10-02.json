@@ -1,0 +1,102 @@
+{
+  "source": {
+    "id": "c1-payroll-be-questions",
+    "type": "chat",
+    "title": "Payroll BE — questions",
+    "date_from": "2026-10-01",
+    "date_to": "2026-10-14",
+    "day": "2026-10-02"
+  },
+  "participants": [
+    {
+      "email": "employee.a@sdworx.example",
+      "display_name": "Employee A"
+    },
+    {
+      "email": "employee.b@sdworx.example",
+      "display_name": "Employee B"
+    },
+    {
+      "email": "employee.c@sdworx.example",
+      "display_name": "Employee C"
+    },
+    {
+      "email": "senior.expert@sdworx.example",
+      "display_name": "Senior Expert"
+    },
+    {
+      "email": "team.lead@sdworx.example",
+      "display_name": "Team Lead"
+    }
+  ],
+  "guests": [],
+  "generated_at": "2026-10-20T12:35:48+00:00",
+  "generator": {
+    "tool": "cursor-agent",
+    "model": "auto",
+    "session_id": "821027cb-a797-418e-82d0-068a267f23bb",
+    "prompt_version": "2026-10-20.2"
+  },
+  "memes": [
+    {
+      "id": "c1-payroll-be-questions@2026-10-02#1",
+      "source": {
+        "type": "chat",
+        "title": "Payroll BE — questions",
+        "date_from": "2026-10-01",
+        "date_to": "2026-10-14"
+      },
+      "day": "2026-10-02",
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": null,
+      "kind": "how-to",
+      "statement": "When a credit note (CN) comes from a contractor whose original invoice was already paid, do not pay it out; register it and deduct it from the next invoice of the same contractor; if there is no next invoice within 2 months, ask Finance for a refund request.",
+      "suggested": {
+        "title": "Credit note after a paid contractor invoice",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country",
+        "company": null,
+        "client_project": null
+      },
+      "tags": [
+        "credit-note",
+        "contractors",
+        "invoices",
+        "refunds",
+        "finance"
+      ],
+      "quotes": [
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "don't pay it out",
+          "at": "c1-008"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "register it and deduct it from the next invoice of the same contractor",
+          "at": "c1-009"
+        },
+        {
+          "speaker": "senior.expert@sdworx.example",
+          "text": "if there's no next invoice within 2 months, ask Finance for a refund request",
+          "at": "c1-010"
+        }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.c@sdworx.example",
+          "quote": {
+            "text": "confirmed, did exactly that last month 👍",
+            "at": "c1-011"
+          },
+          "basis_hint": null
+        }
+      ],
+      "confidence": 0.92,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "rejected": []
+}

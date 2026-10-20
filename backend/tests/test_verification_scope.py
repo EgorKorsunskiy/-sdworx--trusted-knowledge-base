@@ -10,7 +10,7 @@ def _create(client, uid, title="Some new rule"):
     r = client.post(
         "/entries",
         headers=login(client, uid),
-        json={"title": title, "body": "A rule that needs checking.", "category_id": 1, "country": "BE", "scope": "country"},
+        json={"title": title, "body": "A rule that needs checking.", "category_id": 1, "country": "BE", "scope": "country", "basis": "responsible"},
     )
     assert r.status_code == 201, r.text
     return r.json()["public_id"]

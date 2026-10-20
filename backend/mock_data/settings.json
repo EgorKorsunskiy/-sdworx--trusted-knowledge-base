@@ -1,11 +1,74 @@
 [
-  {"key": "duplicate_similarity_threshold", "value": "0.6", "value_type": "float", "description": "Default duplicate warning threshold"},
-  {"key": "stale_hint_months", "value": "12", "value_type": "int", "description": "Months before showing may-be-outdated hint"},
-  {"key": "expert_vote_multiplier", "value": "1.3", "value_type": "float", "description": "Weight multiplier for senior-expert votes"},
-  {"key": "reputation_verified", "value": "10", "value_type": "int", "description": "Reputation for verified entry"},
-  {"key": "reputation_vote", "value": "2", "value_type": "int", "description": "Reputation for correct vote"},
-  {"key": "reputation_pr_merged", "value": "5", "value_type": "int", "description": "Reputation for merged PR"},
-  {"key": "reputation_cited", "value": "3", "value_type": "int", "description": "Reputation for citation"},
-  {"key": "access_token_minutes", "value": "15", "value_type": "int", "description": "Lifetime of an access token (JWT) in minutes"},
-  {"key": "refresh_token_hours", "value": "8", "value_type": "int", "description": "Lifetime of a refresh token in hours"}
+  {
+    "key": "duplicate_similarity_threshold",
+    "value": "0.6",
+    "value_type": "float",
+    "description": "Default duplicate warning threshold"
+  },
+  {
+    "key": "stale_hint_months",
+    "value": "12",
+    "value_type": "int",
+    "description": "Months before showing may-be-outdated hint"
+  },
+  {
+    "key": "expert_vote_multiplier",
+    "value": "1.3",
+    "value_type": "float",
+    "description": "Weight multiplier for senior-expert votes"
+  },
+  {
+    "key": "reputation_verified",
+    "value": "10",
+    "value_type": "int",
+    "description": "Reputation for verified entry"
+  },
+  {
+    "key": "reputation_vote",
+    "value": "2",
+    "value_type": "int",
+    "description": "Reputation for correct vote"
+  },
+  {
+    "key": "reputation_pr_merged",
+    "value": "5",
+    "value_type": "int",
+    "description": "Reputation for merged PR"
+  },
+  {
+    "key": "reputation_cited",
+    "value": "3",
+    "value_type": "int",
+    "description": "Reputation for citation"
+  },
+  {
+    "key": "access_token_minutes",
+    "value": "15",
+    "value_type": "int",
+    "description": "Lifetime of an access token (JWT) in minutes"
+  },
+  {
+    "key": "refresh_token_hours",
+    "value": "8",
+    "value_type": "int",
+    "description": "Lifetime of a refresh token in hours"
+  },
+  {
+    "key": "parser_confidence_threshold",
+    "value": "0.6",
+    "value_type": "float",
+    "description": "AI parser: memes below this confidence are dropped"
+  },
+  {
+    "key": "parser_useful_vote_threshold",
+    "value": "3",
+    "value_type": "int",
+    "description": "AI parser: useful votes after which pending candidates are nudged"
+  },
+  {
+    "key": "parser_raw_retention_days",
+    "value": "30",
+    "value_type": "int",
+    "description": "AI parser: days a raw transcript or chat export is kept"
+  }
 ]

@@ -16,6 +16,7 @@ from app.schemas import (
     PullRequestCreate,
     PullRequestOut,
 )
+from app.services import contacts as contact_service
 from app.services import pull_requests as svc
 from app.services.diff import build_diff, snapshot, user_ref
 
@@ -50,6 +51,8 @@ def _brief(pr: PullRequest) -> dict:
         "change_note": pr.change_note,
         "base_version_number": pr.base_version_number,
         "is_stale": not svc.is_resolved(pr) and svc.is_stale(pr),
+        "basis": pr.basis,
+        "basis_source": pr.basis_source,
     }
 
 
@@ -165,6 +168,11 @@ def open_pull_request(
     if p_title is None and p_body is None and p_just is None:
         raise HTTPException(status_code=422, detail="The proposal does not change the entry")
 
+    try:
+        pr_basis, pr_source = contact_service.clean_basis(body.basis, body.basis_source)
+    except contact_service.BasisError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
     pr = PullRequest(
         entry_id=entry.id,
         author_id=user.id,
@@ -176,6 +184,8 @@ def open_pull_request(
         proposed_justification=p_just,
         change_note=change_note,
         base_version_number=base.version_number,
+        basis=pr_basis,
+        basis_source=pr_source,
     )
     db.add(pr)
     db.flush()

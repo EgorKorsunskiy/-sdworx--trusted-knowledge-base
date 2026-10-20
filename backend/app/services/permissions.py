@@ -67,12 +67,19 @@ def _fallback_applies(db: Session, user: User, entry: Entry, exclude_ids: set[in
 
 def can_verify_version(db: Session, user: User, version: EntryVersion) -> bool:
     entry = version.entry
-    exclude = {entry.author_id, version.edited_by_id}
+    # Authors, editors and co-authors (BR-M3) never verify their own entry
+    exclude = {entry.author_id, version.edited_by_id} | _contact_ids(db, entry.id)
     if user.id in exclude:
         return False
     if _in_verifier_scope(db, user, entry, include_admin=False):
         return True
     return _fallback_applies(db, user, entry, exclude)
+
+
+def _contact_ids(db: Session, entry_id: int) -> set[int]:
+    from app.services.contacts import contact_user_ids
+
+    return contact_user_ids(db, entry_id)
 
 
 def can_verify_pr(db: Session, user: User, pr) -> bool:
@@ -90,10 +97,11 @@ def can_edit_own_unverified(user: User, entry: Entry, version: EntryVersion) -> 
 
 def get_verifiers_for_entry(db: Session, entry: Entry) -> list[User]:
     """Who can verify this entry: the scoped verifiers, or, if there are none, the fallback Managers/Admins."""
+    never = {entry.author_id} | _contact_ids(db, entry.id)  # co-authors cannot verify either
     users = {u.id: u for u in _scoped_verifiers(db, entry)}
     scoped = [
         u for u in users.values()
-        if u.id != entry.author_id and u.is_active and _in_verifier_scope(db, u, entry, include_admin=False)
+        if u.id not in never and u.is_active and _in_verifier_scope(db, u, entry, include_admin=False)
     ]
     if not scoped:
         fallback = (
@@ -104,7 +112,7 @@ def get_verifiers_for_entry(db: Session, entry: Entry) -> list[User]:
             .all()
         )
         for u in fallback:
-            if u.id != entry.author_id:
+            if u.id not in never:
                 users.setdefault(u.id, u)
     return list(users.values())
 
@@ -157,8 +165,8 @@ def contributor_role_badge(user: User) -> str:
 
 
 def entry_contributor_ids(db: Session, entry: Entry) -> set[int]:
-    """Author plus everyone who ever edited a version (they may not vote on the entry)."""
-    ids = {entry.author_id}
+    """Author, co-authors, and everyone who ever edited a version (they may not vote on the entry)."""
+    ids = {entry.author_id} | _contact_ids(db, entry.id)
     rows = db.query(EntryVersion.edited_by_id).filter(EntryVersion.entry_id == entry.id).all()
     ids.update(r[0] for r in rows if r[0] is not None)
     return ids

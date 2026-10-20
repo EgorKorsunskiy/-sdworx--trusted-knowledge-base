@@ -5,8 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
 from app.deps.auth import record_denied
-from app.routers import admin, approvals, auth, categories, contributions, entries, health, history, idp, notifications, outdated, people, pull_requests, search, similar, tags, votes
-from app.seeds import finish_legacy_pull_requests, normalize_tags, seed_all, seed_history_demo, seed_people, seed_settings
+from app.routers import admin, approvals, auth, categories, companies, contributions, entries, health, history, idp, information, notifications, outdated, people, pull_requests, responsibilities, search, similar, tags, votes
+from app.seeds import backfill_contacts, finish_legacy_pull_requests, normalize_tags, seed_all, seed_companies, seed_history_demo, seed_parser_demo, seed_people, seed_settings
 
 app = FastAPI(title=settings.app_name)
 
@@ -34,6 +34,7 @@ app.include_router(notifications.router)
 app.include_router(contributions.router)
 app.include_router(admin.router)
 app.include_router(categories.router)
+app.include_router(companies.router)
 app.include_router(similar.router)  # before entries: /entries/similar must win over /entries/{public_id}
 app.include_router(entries.router)
 app.include_router(history.router)
@@ -44,6 +45,8 @@ app.include_router(tags.router)
 app.include_router(votes.router)
 app.include_router(outdated.router)
 app.include_router(people.router)
+app.include_router(information.router)
+app.include_router(responsibilities.router)
 
 
 @app.on_event("startup")
@@ -52,7 +55,11 @@ def on_startup() -> None:
     seed_all()
     seed_people()
     seed_settings()
+    seed_companies()
+    backfill_contacts()
     finish_legacy_pull_requests()
     if settings.seed_history_demo:
         seed_history_demo()
+    if settings.seed_parser_demo:
+        seed_parser_demo()
     normalize_tags()  # last: also tidies tags of entries seeded above

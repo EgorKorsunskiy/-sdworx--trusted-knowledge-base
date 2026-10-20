@@ -67,6 +67,42 @@ class TagOut(BaseModel):
     tag_type: str = "keyword"
 
 
+class CompanyBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    country: str | None = None
+
+
+class ClientProjectBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    company: CompanyBrief
+
+
+class CompanyCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    country: str | None = Field(default=None, min_length=2, max_length=8)
+
+
+class CompanyUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    country: str | None = Field(default=None, min_length=2, max_length=8)
+
+
+class ClientProjectCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    company_id: int
+
+
+class ClientProjectUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    company_id: int | None = None
+
+
 class PersonBrief(BaseModel):
     id: int
     display_name: str
@@ -89,6 +125,25 @@ class EntryVersionOut(BaseModel):
     created_at: datetime
 
 
+class UserBrief(BaseModel):
+    id: int
+    display_name: str
+    title: str | None = None
+    department: str | None = None
+    is_active: bool = True
+
+
+class ContactOut(BaseModel):
+    """An author or contributor in the Contacts block (FR-K3, FR-K4)."""
+
+    user: UserBrief
+    role: Literal["author", "co_author", "contributor"]
+    basis: Literal["responsible", "relayed"]
+    source: str | None = None
+    reputation: int = 0
+    email: str | None = None
+
+
 class EntryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -100,6 +155,8 @@ class EntryOut(BaseModel):
     category: CategoryOut | None = None
     author: UserOut
     team: TeamBrief | None = None
+    company: CompanyBrief | None = None
+    client_project: ClientProjectBrief | None = None
     tags: list[TagOut] = []
     current_version: EntryVersionOut | None = None
     created_at: datetime
@@ -107,6 +164,9 @@ class EntryOut(BaseModel):
     can_edit: bool = False
     who_to_ask: list[PersonBrief] = []
     difference_note: str | None = None
+    has_responsible_contact: bool = False
+    # Where the entry came from, when it came from an AI-parser meme (no conversation details)
+    origin: dict | None = None
 
 
 class EntryVersionBriefOut(BaseModel):
@@ -121,6 +181,10 @@ class EntryVersionBriefOut(BaseModel):
 
 class EntryDetailOut(EntryOut):
     versions: list[EntryVersionBriefOut] = []
+    contacts: list[ContactOut] = []
+    # No active responsible person left: the block then lists the verifiers in scope instead (FR-K5)
+    no_responsible_contact: bool = False
+    my_contact: ContactOut | None = None
 
 
 class EntryCreate(BaseModel):
@@ -129,8 +193,16 @@ class EntryCreate(BaseModel):
     justification: str | None = None
     category_id: int
     country: str = Field(min_length=2)
-    scope: Literal["country", "eu", "universal"] = "country"
+    scope: Literal["country", "eu", "universal", "company", "client_project"] = "country"
+    company_id: int | None = None
+    client_project_id: int | None = None
     keywords: list[str] = []
+    # Authorship basis (FR-K1): required; Relayed needs a source
+    basis: Literal["responsible", "relayed"]
+    basis_source: str | None = Field(default=None, max_length=500)
+    # Publishing an AI-parser meme through this form (iteration 21)
+    suggestion_id: int | None = None
+    sensitive_confirmed: bool = False
     difference_note: str | None = Field(default=None, max_length=1000)
 
 
@@ -180,14 +252,6 @@ class OutdatedFlagOut(BaseModel):
 
 
 # ---- People / teams / projects ----
-
-
-class UserBrief(BaseModel):
-    id: int
-    display_name: str
-    title: str | None = None
-    department: str | None = None
-    is_active: bool = True
 
 
 class ProfileTeamOut(BaseModel):
@@ -451,6 +515,22 @@ class PullRequestCreate(BaseModel):
     proposed_body: str | None = Field(default=None, max_length=20000)
     proposed_justification: str | None = Field(default=None, max_length=5000)
     change_note: str = Field(min_length=1, max_length=500)
+    # The PR author's basis for their change (FR-K11); they become a contact with it once it is merged
+    basis: Literal["responsible", "relayed"]
+    basis_source: str | None = Field(default=None, max_length=500)
+
+
+class BasisIn(BaseModel):
+    basis: Literal["responsible", "relayed"]
+    source: str | None = Field(default=None, max_length=500)
+
+
+class BasisBulkIn(BaseModel):
+    """Change the basis of several own entries at once (FR-K10)."""
+
+    public_ids: list[str] = Field(min_length=1, max_length=200)
+    basis: Literal["responsible", "relayed"]
+    source: str | None = Field(default=None, max_length=500)
 
 
 class PRApproveIn(BaseModel):
@@ -480,6 +560,9 @@ class PullRequestBrief(BaseModel):
     change_note: str | None = None
     base_version_number: int | None = None
     is_stale: bool = False
+    # The PR author's basis for their change, shown to the approver (FR-K6, FR-K11)
+    basis: str | None = None
+    basis_source: str | None = None
 
 
 class PREntryRef(BaseModel):

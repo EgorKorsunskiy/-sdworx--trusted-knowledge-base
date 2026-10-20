@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useParams, useSearchParams } from "react-router-dom"
 import { api, type Profile } from "@/lib/api"
 import { ROLE_LABELS, formatPeriod } from "@/lib/people"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { TrustBadge } from "@/components/trust-badge"
 import { TagList } from "@/components/tag-chip"
+import { ResponsibilitiesTab } from "@/components/responsibilities-tab"
+import { useAuth } from "@/hooks/useAuth"
 
 export function EmployeeProfilePage() {
   const { id } = useParams<{ id: string }>()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [error, setError] = useState("")
+  const { user } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const tab = params.get("tab") === "responsibilities" ? "responsibilities" : "overview"
 
   useEffect(() => {
     setProfile(null)
@@ -29,6 +34,31 @@ export function EmployeeProfilePage() {
   return (
     <div className="space-y-6">
       <PageHeader title={profile.display_name} subtitle={subtitle} />
+
+      <div role="tablist" className="flex gap-1 border-b border-stone-200">
+        {[
+          { id: "overview", label: "Overview" },
+          { id: "responsibilities", label: "Responsibilities" },
+        ].map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            type="button"
+            aria-selected={tab === t.id}
+            onClick={() => setParams(t.id === "overview" ? {} : { tab: t.id })}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
+              tab === t.id ? "border-stone-900 text-stone-900" : "border-transparent text-stone-500 hover:text-stone-900"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "responsibilities" ? (
+        <ResponsibilitiesTab userId={profile.id} isSelf={user?.id === profile.id} />
+      ) : (
+      <>
 
       <div className="card">
         <h3 className="text-sm font-semibold">Roles</h3>
@@ -101,6 +131,8 @@ export function EmployeeProfilePage() {
           </ul>
         )}
       </div>
+      </>
+      )}
     </div>
   )
 }

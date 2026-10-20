@@ -13,6 +13,7 @@ def _create(client, user_id, title, country="BE", scope="country", body="Some bo
             "category_id": 1,
             "country": country,
             "scope": scope,
+            "basis": "responsible",
         },
     )
     assert r.status_code == 201, r.text
@@ -117,7 +118,7 @@ def test_facets_endpoint(client):
     assert "Payroll" in facets["departments"]
     assert "Freelance / contractor payroll" in facets["categories"]
     assert {s["value"] for s in facets["statuses"]} == {"unverified", "verified", "outdated"}
-    assert {s["value"] for s in facets["scopes"]} == {"country", "eu", "universal"}
+    assert {s["value"] for s in facets["scopes"]} == {"country", "eu", "universal", "company", "client_project"}
     assert facets["verifier_roles"] == ["Manager", "Team Lead", "Senior Expert"]
     assert {"Employee A", "Employee B", "Employee C"} <= {a["name"] for a in facets["authors"]}
     assert "Payroll Experts" in {t["name"] for t in facets["teams"]}

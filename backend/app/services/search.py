@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     Category,
+    ClientProject,
+    Company,
     Entry,
     EntryVersion,
     Tag,
@@ -22,12 +24,15 @@ SCOPE_ALIASES = {
     "country": ["country", "country-specific"],
     "eu": ["eu", "eu-wide"],
     "universal": ["universal"],
+    "company": ["company"],
+    "client_project": ["client_project"],
 }
 STATUS_ALIASES = {
     "unverified": ["unverified"],
     "verified": ["verified"],
     "outdated": ["stale", "outdated"],
 }
+COMPANY_SCOPES = ("company", "client_project")
 VERIFIER_ROLES = ["Manager", "Team Lead", "Senior Expert"]
 
 
@@ -41,6 +46,8 @@ class SearchFilters:
     verifier_roles: list[str] = field(default_factory=list)
     author_ids: list[int] = field(default_factory=list)
     team_ids: list[int] = field(default_factory=list)
+    company_ids: list[int] = field(default_factory=list)
+    client_project_ids: list[int] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     updated_from: date | None = None
     updated_to: date | None = None
@@ -109,6 +116,11 @@ def search_entries(
         q = q.filter(Entry.author_id.in_(
             select(TeamMembership.user_id).where(TeamMembership.team_id.in_(f.team_ids))
         ))
+    if f.company_ids:
+        # Entries scoped to the company or to one of its client projects (those carry the company too)
+        q = q.filter(Entry.company_id.in_(f.company_ids))
+    if f.client_project_ids:
+        q = q.filter(Entry.client_project_id.in_(f.client_project_ids))
     if f.tags:
         # Several tags are one filter, so they combine with OR; names are matched normalized.
         wanted = [normalize_tag(t) for t in f.tags if normalize_tag(t)]
@@ -145,6 +157,13 @@ def search_entries(
             s += 10
         if entry.scope in ("eu", "EU-wide"):
             s += 5
+        # BR-1: company / client-project entries rank first when the search is filtered by them,
+        # and below broader entries otherwise.
+        if entry.scope in COMPANY_SCOPES:
+            asked = (
+                entry.client_project_id is not None and entry.client_project_id in f.client_project_ids
+            ) or (entry.company_id is not None and entry.company_id in f.company_ids)
+            s += 200 if asked else -15
 
         # Freshness / outdated penalty
         if version.status == VersionStatus.OUTDATED.value:
@@ -191,8 +210,15 @@ def search_facets(db: Session) -> dict:
             {"value": "country", "label": "Country-specific"},
             {"value": "eu", "label": "EU-wide"},
             {"value": "universal", "label": "Universal"},
+            {"value": "company", "label": "Company"},
+            {"value": "client_project", "label": "Client project"},
         ],
         "verifier_roles": VERIFIER_ROLES,
         "authors": [{"id": u.id, "name": u.display_name} for u in authors],
         "teams": [{"id": t.id, "name": t.name} for t in db.query(Team).order_by(Team.name)],
+        "companies": [{"id": c.id, "name": c.name} for c in db.query(Company).order_by(Company.name)],
+        "client_projects": [
+            {"id": p.id, "name": p.name, "company": p.company.name}
+            for p in db.query(ClientProject).order_by(ClientProject.name)
+        ],
     }

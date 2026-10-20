@@ -3,9 +3,11 @@ import { Link, useSearchParams } from "react-router-dom"
 import { Search, SlidersHorizontal, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { PageHeader } from "@/components/page-header"
 import { TrustBadge } from "@/components/trust-badge"
 import { TagList } from "@/components/tag-chip"
+import { ScopeBadge } from "@/components/scope-badge"
 import { api, normalizeTag, SEARCH_DATE_KEYS, SEARCH_MULTI_KEYS, type SearchFacets, type TagSuggestion } from "@/lib/api"
 
 type Option = { value: string; label: string }
@@ -20,6 +22,8 @@ const GROUP_TITLES: Record<MultiKey, string> = {
   verifier_role: "Verifier role",
   author: "Author",
   team: "Team",
+  company: "Company",
+  client_project: "Client project",
   tag: "Tag",
 }
 
@@ -41,6 +45,8 @@ function optionsFor(key: MultiKey, f: SearchFacets | null): Option[] {
     case "verifier_role": return plain(f.verifier_roles)
     case "author": return named(f.authors)
     case "team": return named(f.teams)
+    case "company": return named(f.companies ?? [])
+    case "client_project": return (f.client_projects ?? []).map((p) => ({ value: String(p.id), label: `${p.name} (${p.company})` }))
     case "tag": return [] // tags are picked with suggestions, see TagFilter
   }
 }
@@ -333,6 +339,8 @@ export function SearchPage() {
                 <p className="mt-1 text-sm text-stone-500 line-clamp-2">{entry.current_version.body}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                   <TrustBadge status={entry.current_version.status} />
+                  <ScopeBadge entry={entry} />
+                  {entry.has_responsible_contact && <Badge variant="success">Responsible contact</Badge>}
                   <span className="text-stone-400">{entry.country} · {entry.department} · {entry.author.display_name}</span>
                 </div>
               </Link>

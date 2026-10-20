@@ -1,12 +1,13 @@
 import { Link, useLocation, useNavigate } from "react-router-dom"
-import { Search, Plus, ClipboardCheck, FolderKanban, Shield, Bell, User } from "lucide-react"
+import { Search, Plus, ClipboardCheck, FolderKanban, Shield, Bell, User, Lightbulb } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 
-const navItems = [
+const navItems: { to: string; label: string; icon: typeof Search; count?: number }[] = [
   { to: "/", label: "Search", icon: Search },
+  { to: "/information", label: "Information overview", icon: Lightbulb },
   { to: "/add", label: "Add entry", icon: Plus },
   { to: "/approvals", label: "Approvals", icon: ClipboardCheck, count: 0 },
   { to: "/contributions", label: "My contributions", icon: FolderKanban },
@@ -18,17 +19,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const [unread, setUnread] = useState(0)
+  const [toDecide, setToDecide] = useState(0)
 
   useEffect(() => {
     api.notifications.unreadCount().then((r: any) => setUnread(r.count)).catch(() => {})
-  }, [location.pathname])
+    // Suggestions to decide plus incoming co-author requests (FR-MS16)
+    api.information.summary().then((r) => setToDecide(r.badge)).catch(() => {})
+  }, [location.pathname, location.search])
 
   if (!user) return <>{children}</>
 
   return (
     <div className="min-h-svh bg-stone-50">
       <header className="sticky top-0 z-10 border-b border-stone-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-6 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="text-sm font-semibold tracking-tight">
             Peerpoint
           </Link>
@@ -50,9 +54,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 >
                   <item.icon className="h-4 w-4" />
                   {item.label}
-                  {item.count ? (
+                  {(item.to === "/information" ? toDecide : item.count) ? (
                     <span className="ml-1 rounded-full bg-stone-900 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                      {item.count}
+                      {item.to === "/information" ? toDecide : item.count}
                     </span>
                   ) : null}
                 </Link>

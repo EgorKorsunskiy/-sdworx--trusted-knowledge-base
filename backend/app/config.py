@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     demo_mode: bool = True
     # Seed a 3-version demo entry (tag history-demo) to show the change log and diffs.
     seed_history_demo: bool = True
+    # Load the mock meetings and chats through the stub parser agent (suggestions for the Information overview).
+    seed_parser_demo: bool = True
 
 
 settings = Settings()

@@ -44,6 +44,30 @@ def _user_out(u: User) -> dict:
     }
 
 
+# Ranges of the AI parser's agent settings (BR-M4, BR-M6, BR-M7)
+SETTING_RANGES = {
+    "parser_confidence_threshold": (0.0, 1.0),
+    "parser_useful_vote_threshold": (1, 1000),
+    "parser_raw_retention_days": (1, 3650),
+}
+
+
+def _checked_setting(setting: SystemSetting, value: str) -> str:
+    """A typed setting must parse as its type (and stay in range for the agent settings); a bad value is a 422."""
+    value = value.strip()
+    kind = {"int": int, "float": float}.get(setting.value_type)
+    if kind is not None:
+        try:
+            number = kind(value)
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"{setting.key} must be a {setting.value_type}")
+        low, high = SETTING_RANGES.get(setting.key, (None, None))
+        if low is not None and not low <= number <= high:
+            raise HTTPException(status_code=422, detail=f"{setting.key} must be between {low} and {high}")
+        return str(number)
+    return value
+
+
 @router.get("/settings")
 def list_settings(
     db: Session = Depends(get_db),
@@ -71,6 +95,7 @@ def update_setting(
     s = db.query(SystemSetting).filter(SystemSetting.key == key).first()
     if s is None:
         raise HTTPException(status_code=404, detail="Setting not found")
+    value = _checked_setting(s, value)
     s.value = value
     db.commit()
     return {"status": "ok"}

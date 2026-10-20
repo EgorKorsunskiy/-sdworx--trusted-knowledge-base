@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react"
 import { useParams, Link, useNavigate } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
-import { api, type ContributorsResponse, type EntryDiff, type HistoryItem, type PullRequestBrief } from "@/lib/api"
+import { api, type BasisChange, type ContributorsResponse, type Meme, type EntryDiff, type HistoryItem, type PullRequestBrief } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog } from "@/components/ui/dialog"
 import { TrustBadge } from "@/components/trust-badge"
 import { TagList } from "@/components/tag-chip"
+import { ScopeBadge } from "@/components/scope-badge"
 import { DiffView } from "@/components/diff-view"
 import { PRStatusBadge } from "@/components/pr-status-badge"
 import { ContributorBody } from "@/components/contributor-body"
+import { ContactsCard } from "@/components/contacts-card"
+import { CoauthorDialog } from "@/components/meme-card"
+import { basisLabel } from "@/components/basis-fields"
 
 export function EntryPage() {
   const { publicId } = useParams<{ publicId: string }>()
@@ -28,6 +32,7 @@ export function EntryPage() {
   const [showOutdatedModal, setShowOutdatedModal] = useState(false)
   const [outdatedReason, setOutdatedReason] = useState("")
   const [history, setHistory] = useState<HistoryItem[]>([])
+  const [basisLog, setBasisLog] = useState<BasisChange[]>([])
   const [openVersion, setOpenVersion] = useState<number | null>(null)
   const [diffs, setDiffs] = useState<Record<number, EntryDiff>>({})
   const [diffError, setDiffError] = useState("")
@@ -35,6 +40,7 @@ export function EntryPage() {
   const [highlightUser, setHighlightUser] = useState<number | null>(null)
   const [scrollTo, setScrollTo] = useState<number | null>(null)
   const [voteError, setVoteError] = useState("")
+  const [coauthorMeme, setCoauthorMeme] = useState<Meme | null>(null)
 
   const load = () => {
     if (!publicId) return
@@ -44,6 +50,9 @@ export function EntryPage() {
     api.entries.history(publicId)
       .then(setHistory)
       .catch(() => {})
+    api.entries.basisLog(publicId)
+      .then(setBasisLog)
+      .catch(() => setBasisLog([]))
     api.entries.contributors(publicId)
       .then(setContrib)
       .catch(() => setContrib(null))
@@ -58,6 +67,7 @@ export function EntryPage() {
 
   useEffect(() => {
     setHistory([])
+    setBasisLog([])
     setOpenPRs([])
     setDiffs({})
     setOpenVersion(null)
@@ -131,11 +141,26 @@ export function EntryPage() {
     setTimeout(() => setCopied(false), 1500)
   }
 
+  const openCoauthorRequest = async () => {
+    const id = entry?.origin?.meme_id
+    if (!id) return
+    try {
+      setCoauthorMeme(await api.information.meme(id))
+    } catch (err: any) {
+      setError(err.message || "Failed to open the request")
+    }
+  }
+
   if (loading) return <div className="text-stone-500">Loading…</div>
   if (error) return <div className="text-red-600">{error}</div>
   if (!entry) return null
 
   const v = entry.current_version
+  // The change log: versions and changes of authorship basis (which make no new version), newest first
+  const changeLog = [
+    ...history.map((h) => ({ kind: "version" as const, at: new Date(h.created_at).getTime(), h })),
+    ...basisLog.map((change) => ({ kind: "basis" as const, at: new Date(change.created_at).getTime(), change })),
+  ].sort((a, b) => b.at - a.at)
   const correctCount = votes.filter((x) => x.is_correct).length
   const incorrectCount = votes.filter((x) => !x.is_correct).length
 
@@ -152,6 +177,13 @@ export function EntryPage() {
             <p className="mt-1 text-sm text-stone-500">
               {entry.public_id} · Version {v.version_number} · Updated {new Date(v.created_at).toLocaleDateString()}
             </p>
+            {entry.origin && (
+              <p className="mt-0.5 text-xs text-stone-500">
+                From a {entry.origin.kind === "meeting" ? "meeting" : "group chat"},{" "}
+                {new Date(entry.origin.date_from).toLocaleDateString()}
+                {entry.origin.date_to ? ` – ${new Date(entry.origin.date_to).toLocaleDateString()}` : ""}
+              </p>
+            )}
           </div>
           <Button variant="secondary" size="sm" onClick={() => navigate(`/entries/${entry.public_id}/suggest`)}>
             Suggest a change
@@ -163,6 +195,15 @@ export function EntryPage() {
           <Badge variant="success">{correctCount} correct</Badge>
           <Badge variant="danger">{incorrectCount} incorrect</Badge>
         </div>
+
+        {!!entry.origin?.pending_requests && (
+          <div className="mt-4 rounded-lg bg-indigo-50 p-3 text-sm text-indigo-900 ring-1 ring-indigo-600/10">
+            {entry.origin.pending_requests === 1
+              ? "A colleague asks to be a co-author of this entry."
+              : `${entry.origin.pending_requests} colleagues ask to be co-authors of this entry.`}{" "}
+            <Link to="/information?tab=yours&section=coauthor" className="font-medium underline">Review the requests</Link>
+          </div>
+        )}
 
         {contrib && contrib.fragments.length > 0 ? (
           <ContributorBody data={contrib} highlightUserId={highlightUser} onShowChange={showChange} />
@@ -205,7 +246,7 @@ export function EntryPage() {
           </div>
           <div className="flex justify-between py-3">
             <dt className="text-stone-500">Scope</dt>
-            <dd className="capitalize">{entry.scope}</dd>
+            <dd><ScopeBadge entry={entry} /></dd>
           </div>
           <div className="flex justify-between py-3">
             <dt className="text-stone-500">Tags</dt>
@@ -225,7 +266,17 @@ export function EntryPage() {
           )}
           <Button variant="secondary" onClick={copyReference}>{copied ? "Copied" : "Copy reference"}</Button>
           <Button variant="ghost" onClick={() => setShowOutdatedModal(true)}>Mark outdated</Button>
+          {entry.origin?.is_participant && entry.origin.can_request_coauthorship && (
+            <span title={entry.origin.request_blocked_reason ?? undefined}>
+              <Button variant="secondary" disabled={!!entry.origin.request_blocked_reason} onClick={openCoauthorRequest}>
+                Request co-authorship
+              </Button>
+            </span>
+          )}
         </div>
+        {entry.origin?.is_participant && entry.origin.can_request_coauthorship && entry.origin.request_blocked_reason && (
+          <p className="mt-2 text-xs text-stone-500">{entry.origin.request_blocked_reason}</p>
+        )}
       </div>
 
       {contrib && contrib.contributors.length > 0 && (
@@ -240,6 +291,9 @@ export function EntryPage() {
                   <Link to={`/people/${c.user.id}`} className="font-medium hover:underline">{c.user.display_name}</Link>
                   <Badge variant="neutral">{c.user.role_badge}</Badge>
                   <span className="text-xs text-stone-500">{c.user.reputation} rep</span>
+                  {c.fragment_count === 0 ? (
+                    <span className="ml-auto text-xs text-stone-500">Co-author, no lines of their own</span>
+                  ) : (
                   <button
                     type="button"
                     aria-pressed={active}
@@ -248,6 +302,7 @@ export function EntryPage() {
                   >
                     {active ? "Highlighted" : `${c.fragment_count} ${c.fragment_count === 1 ? "line" : "lines"}`}
                   </button>
+                  )}
                 </li>
               )
             })}
@@ -255,21 +310,14 @@ export function EntryPage() {
         </div>
       )}
 
-      {entry.who_to_ask && entry.who_to_ask.length > 0 && (
-        <div className="mt-6 card">
-          <h3 className="text-sm font-semibold">Who to ask</h3>
-          <ul className="mt-3 divide-y divide-stone-100 text-sm">
-            {entry.who_to_ask.map((p: any) => (
-              <li key={p.id} className="flex justify-between py-2">
-                <Link to={`/people/${p.id}`} className="font-medium hover:underline">{p.display_name}</Link>
-                <span className="text-stone-500">
-                  {[p.title, p.role && p.role.replace(/_/g, " ")].filter(Boolean).join(" · ")}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <ContactsCard
+        publicId={entry.public_id}
+        contacts={entry.contacts ?? []}
+        mine={entry.my_contact}
+        noResponsible={!!entry.no_responsible_contact}
+        verifiers={entry.who_to_ask ?? []}
+        onChanged={load}
+      />
 
       {votes.length > 0 && (
         <div className="mt-6 card">
@@ -307,7 +355,24 @@ export function EntryPage() {
         <div className="mt-6 card">
           <h3 className="text-sm font-semibold">History</h3>
           <ul className="mt-3 divide-y divide-stone-100 text-sm">
-            {history.map((h) => (
+            {changeLog.map((item) => {
+              if (item.kind === "basis") return (
+              <li key={`basis-${item.change.id}`} className="py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="neutral">basis</Badge>
+                  <Link to={`/people/${item.change.user.id}`} className="font-medium hover:underline">{item.change.user.display_name}</Link>
+                  <span className="text-stone-500">{new Date(item.change.created_at).toLocaleDateString()}</span>
+                  <span className="italic text-stone-600">
+                    changed their basis from {item.change.old_basis ? basisLabel(item.change.old_basis) : "none"} to{" "}
+                    {basisLabel(item.change.new_basis)}
+                    {item.change.new_source ? ` (source: ${item.change.new_source})` : ""}
+                  </span>
+                  <span className="text-xs text-stone-500">no new version</span>
+                </div>
+              </li>
+              )
+              const h = item.h
+              return (
               <li key={h.version_id} id={`history-v${h.version_number}`} className="scroll-mt-4 py-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="neutral">v{h.version_number}</Badge>
@@ -339,9 +404,21 @@ export function EntryPage() {
                   </div>
                 )}
               </li>
-            ))}
+              )
+            })}
           </ul>
         </div>
+      )}
+
+      {coauthorMeme && (
+        <CoauthorDialog
+          meme={coauthorMeme}
+          onClose={() => setCoauthorMeme(null)}
+          onDone={() => {
+            setCoauthorMeme(null)
+            load()
+          }}
+        />
       )}
 
       <Dialog open={showOutdatedModal} onClose={() => setShowOutdatedModal(false)} title="Mark as outdated">

@@ -32,6 +32,8 @@ class EntryScope(str, Enum):
     COUNTRY = "country-specific"
     EU = "EU-wide"
     UNIVERSAL = "universal"
+    COMPANY = "company"
+    CLIENT_PROJECT = "client_project"
 
 
 class VersionStatus(str, Enum):
@@ -204,6 +206,34 @@ class Tag(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class Company(Base):
+    """A client company of SD Worx (BR-11). Its name is shown only in scope badges, never in entry content."""
+
+    __tablename__ = "companies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    country: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    client_projects: Mapped[list["ClientProject"]] = relationship(
+        back_populates="company", cascade="all, delete-orphan", order_by="ClientProject.name"
+    )
+
+
+class ClientProject(Base):
+    """A project at one client company. Not an internal Project (BR-8, BR-11)."""
+
+    __tablename__ = "client_projects"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    company: Mapped["Company"] = relationship(back_populates="client_projects")
+
+
 class Entry(Base):
     __tablename__ = "entries"
 
@@ -217,11 +247,16 @@ class Entry(Base):
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=True)
     difference_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Company / client-project scope (FR-E7); a client project implies its company
+    company_id: Mapped[int | None] = mapped_column(ForeignKey("companies.id"), nullable=True)
+    client_project_id: Mapped[int | None] = mapped_column(ForeignKey("client_projects.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
+    company: Mapped["Company | None"] = relationship()
+    client_project: Mapped["ClientProject | None"] = relationship()
     author: Mapped["User"] = relationship(back_populates="authored_entries", foreign_keys=[author_id])
     category: Mapped["Category | None"] = relationship(back_populates="entries")
     team: Mapped["Team | None"] = relationship(back_populates="entries")
@@ -232,6 +267,61 @@ class Entry(Base):
     pull_requests: Mapped[list["PullRequest"]] = relationship(
         back_populates="entry", cascade="all, delete-orphan"
     )
+    contacts: Mapped[list["EntryContact"]] = relationship(
+        back_populates="entry", cascade="all, delete-orphan", order_by="EntryContact.id"
+    )
+
+
+class Basis(str, Enum):
+    """Authorship basis (BR-10): what a person states about their link to an entry's information."""
+
+    RESPONSIBLE = "responsible"
+    RELAYED = "relayed"
+
+
+class EntryContact(Base):
+    """An author or contributor of an entry as shown in its Contacts block, with their basis and source.
+
+    Exactly one row per person and entry. ``role`` is ``author`` (the creator), ``co_author`` (added through the
+    AI parser) or ``contributor`` (a merged pull request)."""
+
+    __tablename__ = "entry_contacts"
+    __table_args__ = (UniqueConstraint("entry_id", "user_id", name="uq_entry_contact"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    entry_id: Mapped[int] = mapped_column(ForeignKey("entries.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    role: Mapped[str] = mapped_column(String(16), nullable=False, default="author")
+    basis: Mapped[str] = mapped_column(String(16), nullable=False, default=Basis.RESPONSIBLE.value)
+    source: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    entry: Mapped["Entry"] = relationship(back_populates="contacts")
+    user: Mapped["User"] = relationship()
+
+
+class EntryContactChange(Base):
+    """Append-only log of basis changes (FR-K2, BR-10); shown in the entry's change log. No new version."""
+
+    __tablename__ = "entry_contact_changes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    entry_id: Mapped[int] = mapped_column(ForeignKey("entries.id"), nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    old_basis: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    old_source: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    new_basis: Mapped[str] = mapped_column(String(16), nullable=False)
+    new_source: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped["User"] = relationship()
+
+
+@event.listens_for(EntryContactChange, "before_update")
+@event.listens_for(EntryContactChange, "before_delete")
+def _contact_change_is_append_only(mapper, connection, target):
+    raise RuntimeError("entry_contact_changes is append-only")
 
 
 class EntryVersion(Base):
@@ -337,6 +427,9 @@ class PullRequest(Base):
     proposed_justification: Mapped[str | None] = mapped_column(Text, nullable=True)
     change_note: Mapped[str | None] = mapped_column(Text, nullable=True)
     base_version_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # The PR author's authorship basis for their change (FR-K11); they become a contact with it on merge
+    basis: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    basis_source: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -421,3 +514,20 @@ class Notification(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user: Mapped["User"] = relationship(back_populates="notifications")
+
+
+# AI parser tables (sources, memes, suggestions, ...); imported last so they can reference the models above
+from app.models.parser import (  # noqa: E402,F401
+    CoauthorRequest,
+    Meme,
+    MemeStatus,
+    Quote,
+    RequestStatus,
+    Source,
+    SourceParticipant,
+    Suggestion,
+    SuggestionEvent,
+    SuggestionState,
+    UsefulnessVote,
+    meme_tags,
+)

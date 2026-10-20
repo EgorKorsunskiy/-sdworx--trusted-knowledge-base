@@ -40,6 +40,10 @@ COLUMN_MIGRATIONS = [
     ("entry_versions", "source_pr_id", "INTEGER REFERENCES pull_requests(id)"),
     ("pull_requests", "base_version_number", "INTEGER"),
     ("tags", "tag_type", "VARCHAR(16) NOT NULL DEFAULT 'keyword'"),
+    ("entries", "company_id", "INTEGER REFERENCES companies(id)"),
+    ("entries", "client_project_id", "INTEGER REFERENCES client_projects(id)"),
+    ("pull_requests", "basis", "VARCHAR(16)"),
+    ("pull_requests", "basis_source", "VARCHAR(500)"),
 ]
 
 

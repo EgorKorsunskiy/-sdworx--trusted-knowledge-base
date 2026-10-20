@@ -28,6 +28,26 @@ export function ContributionsPage() {
           ))}
         </ul>
       </div>
+      {(data.co_authored ?? []).length > 0 && (
+        <div className="mt-6 card">
+          <h3 className="text-sm font-semibold">Entries I co-authored</h3>
+          <p className="mt-1 text-xs text-stone-500">Added through the Information overview, with another author as owner.</p>
+          <ul className="mt-3 divide-y divide-stone-100">
+            {data.co_authored.map((e: any) => (
+              <li key={e.public_id} className="py-3">
+                <Link to={`/entries/${e.public_id}`} className="font-medium hover:underline">{e.title}</Link>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-stone-500">
+                  <Badge variant="success">Co-author</Badge>
+                  <Badge variant="neutral">{e.status}</Badge>
+                  <span>
+                    by <Link to={`/people/${e.author.id}`} className="hover:underline">{e.author.display_name}</Link>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="mt-6 card">
         <h3 className="text-sm font-semibold">My pull requests</h3>
         {(data.pull_requests ?? []).length === 0 ? (

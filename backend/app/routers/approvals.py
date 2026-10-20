@@ -67,6 +67,16 @@ def pending_approvals(
                     "author": user_to_out(v.entry.author),
                     "difference_note": v.entry.difference_note,
                     "tags": [{"id": t.id, "name": t.name, "tag_type": t.tag_type} for t in v.entry.tags],
+                    # Each author's basis and source as context for the review (FR-K6, BR-10)
+                    "contacts": [
+                        {
+                            "user": {"id": c.user.id, "display_name": c.user.display_name},
+                            "role": c.role,
+                            "basis": c.basis,
+                            "source": c.source,
+                        }
+                        for c in sorted(v.entry.contacts, key=lambda c: (c.basis != "responsible", c.id))
+                    ],
                 },
             })
     return result

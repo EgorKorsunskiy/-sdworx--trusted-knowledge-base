@@ -8,6 +8,8 @@ from app.database import Base, engine
 from app.services.public_id import make_public_id
 from app.models import (
     Category,
+    ClientProject,
+    Company,
     Entry,
     EntryScope,
     EntryVersion,
@@ -72,6 +74,10 @@ def _add_entry(db: Session, data: dict, users: dict[str, User], now: datetime) -
     )
     db.add(entry)
     db.flush()
+    # The author is a contact with the basis from the mock data (default: Responsible)
+    from app.services.contacts import add_contact
+
+    add_contact(db, entry, author.id, data.get("basis", "responsible"), data.get("basis_source"), role="author")
 
     for name in data.get("tags", []):
         tag = _tag(db, name)
@@ -163,6 +169,46 @@ def seed_all() -> None:
 
     seed_people()
     seed_settings()
+    seed_companies()
+    backfill_contacts()
+
+
+def backfill_contacts() -> None:
+    """Authors of entries from before authorship bases existed become Responsible contacts (idempotent)."""
+    from app.services.contacts import backfill_author_contacts
+
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        backfill_author_contacts(db)
+
+
+def seed_parser_demo() -> None:
+    """Run the stub parser agent over the mock meetings and chats (idempotent; Admins' agent settings apply)."""
+    from app.services.parser_agent import load_mock_sources, purge_expired_sources
+
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        if db.query(User).filter(User.email == "employee.a@sdworx.example").first() is None:
+            return  # not the demo dataset
+        count = load_mock_sources(db)
+        purge_expired_sources(db)
+        if count:
+            print(f"Imported {count} mock sources through the stub parser agent.")
+
+
+def seed_companies() -> None:
+    """Client companies and their client projects from companies.json (idempotent, fills an already-seeded DB)."""
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        if db.query(Company).first():
+            return
+        for data in _load("companies"):
+            company = Company(name=data["name"], country=data.get("country"))
+            db.add(company)
+            db.flush()
+            for name in data.get("client_projects", []):
+                db.add(ClientProject(name=name, company_id=company.id))
+        db.commit()
 
 
 def normalize_tags() -> None:

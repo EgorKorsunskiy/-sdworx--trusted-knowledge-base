@@ -92,6 +92,10 @@ export type TagSuggestion = Tag & { entry_count: number }
 
 export const normalizeTag = (name: string) => name.trim().replace(/\s+/g, " ").toLowerCase()
 
+export type CompanyBrief = { id: number; name: string; country?: string | null }
+export type ClientProjectBrief = { id: number; name: string; company: CompanyBrief }
+export type Company = CompanyBrief & { client_projects: { id: number; name: string; company_id: number }[] }
+
 export type Category = {
   id: number
   name: string
@@ -119,6 +123,50 @@ export type PersonBrief = {
   role?: string | null
 }
 
+export type Contact = {
+  user: UserBrief
+  role: "author" | "co_author" | "contributor"
+  basis: "responsible" | "relayed"
+  source?: string | null
+  reputation: number
+  email?: string | null
+}
+
+export type BasisChange = {
+  id: number
+  created_at: string
+  user: { id: number; display_name: string }
+  old_basis: string | null
+  old_source: string | null
+  new_basis: string
+  new_source: string | null
+}
+
+export type ResponsibilityItem = {
+  public_id: string
+  title: string
+  status: string
+  role: "author" | "co_author" | "contributor"
+  basis: "responsible" | "relayed"
+  source?: string | null
+  scope: string
+  category?: string | null
+  updated_at: string
+}
+
+export type Responsibilities = {
+  areas: {
+    categories: string[]
+    countries: string[]
+    scopes: string[]
+    companies: string[]
+    client_projects: string[]
+    tags: { id: number; name: string }[]
+  }
+  responsible: ResponsibilityItem[]
+  relayed: ResponsibilityItem[]
+}
+
 export type Entry = {
   id: number
   public_id: string
@@ -128,6 +176,8 @@ export type Entry = {
   category?: { id: number; name: string; is_default?: boolean } | null
   author: User
   team?: { id: number; name: string; department: string } | null
+  company?: CompanyBrief | null
+  client_project?: ClientProjectBrief | null
   tags: Tag[]
   current_version: EntryVersion
   created_at: string
@@ -135,6 +185,22 @@ export type Entry = {
   can_edit?: boolean
   who_to_ask?: PersonBrief[]
   difference_note?: string | null
+  has_responsible_contact?: boolean
+  contacts?: Contact[]
+  no_responsible_contact?: boolean
+  my_contact?: Contact | null
+  origin?: {
+    kind: "meeting" | "chat"
+    date_from: string
+    date_to: string | null
+    is_participant: boolean
+    meme_id: number | null
+    is_author?: boolean
+    can_request_coauthorship?: boolean
+    request_blocked_reason?: string | null
+    my_request_status?: string | null
+    pending_requests?: number
+  } | null
 }
 
 export type UserBrief = {
@@ -298,6 +364,8 @@ export type PRApproval = {
 }
 
 export type PullRequestBrief = {
+  basis?: string | null
+  basis_source?: string | null
   id: number
   title: string | null
   status: PRStatus
@@ -343,6 +411,131 @@ export type PullRequestCreate = {
   proposed_body?: string
   proposed_justification?: string
   change_note: string
+  basis: "responsible" | "relayed"
+  basis_source?: string
+}
+
+// ---- AI parser: Information overview ----
+
+export type MemePerson = { id: number; display_name: string; title?: string | null; department?: string | null }
+export type SuggestionEventOut = {
+  id: number
+  action: "created" | "approve" | "reject" | "postpone" | "reopen" | "withdraw" | "closed" | "joined"
+  basis: string | null
+  source: string | null
+  reason: string | null
+  created_at: string
+}
+export type SuggestionState = "pending" | "postponed" | "accepted" | "declined" | "closed"
+export type MemeSuggestion = {
+  id: number
+  owner: MemePerson
+  is_mine: boolean
+  role: "speaker" | "confirmer"
+  state: SuggestionState
+  label: string
+  basis: "responsible" | "relayed" | null
+  source: string | null
+  reason: string | null
+  decided_at: string | null
+  basis_hint: { basis: "responsible" | "relayed"; source?: string } | null
+  history: SuggestionEventOut[]
+}
+export type CoauthorRequestOut = {
+  id: number
+  requester: MemePerson
+  basis: "responsible" | "relayed"
+  source: string | null
+  note: string | null
+  evidence: string | null
+  evidence_quote: { text: string; at: string } | null
+  status: "pending" | "accepted" | "declined"
+  decided_by: MemePerson | null
+  decision_reason: string | null
+  decided_at: string | null
+  created_at: string
+  is_mine: boolean
+}
+export type MemeStatus = "new" | "preparing" | "published" | "declined"
+export type Meme = {
+  id: number
+  title: string
+  statement: string
+  kind: string
+  status: MemeStatus
+  sensitive: boolean
+  category: string | null
+  country: string | null
+  scope: string
+  scope_label: string
+  company: { id: number; name: string } | null
+  client_project: { id: number; name: string; company: string } | null
+  tags: Tag[]
+  similar_entries: { public_id: string; title: string; status: string; score: number }[]
+  source: { id: number; kind: "meeting" | "chat"; title: string; date_from: string; date_to: string | null }
+  speaker: MemePerson
+  confirmers: MemePerson[]
+  quotes: {
+    id: number
+    user: MemePerson
+    text: string
+    at: string
+    is_confirmation: boolean
+    context: { at: string; speaker: string; text: string; quote: boolean }[]
+  }[]
+  suggestions: MemeSuggestion[]
+  my_suggestion_id: number | null
+  votes: { useful: number; not_useful: number; my_vote: boolean | null; blocked_reason: string | null }
+  entry: { public_id: string; status: string } | null
+  authors: { user: MemePerson; basis: "responsible" | "relayed"; source: string | null; is_me: boolean }[]
+  is_author: boolean
+  is_candidate: boolean
+  can_request_coauthorship: boolean
+  request_blocked_reason: string | null
+  my_request: CoauthorRequestOut | null
+}
+export type OverviewItem =
+  | { type: "suggestion"; id: number; meme: Meme }
+  | { type: "meme"; id: number; meme: Meme }
+  | { type: "coauthor_request"; id: number; meme: Meme; request: CoauthorRequestOut }
+export type OverviewSection = "to_decide" | "postponed" | "decided" | "coauthor"
+export type OverviewCounts = Record<OverviewSection, number>
+export type OverviewPage = {
+  tab: "yours" | "others"
+  section: OverviewSection | null
+  counts: OverviewCounts
+  items: OverviewItem[]
+  total: number
+  page: number
+  page_size: number
+}
+export type SuggestionPrefill = {
+  suggestion_id: number
+  meme_id: number
+  already_published: boolean
+  entry_public_id: string | null
+  title: string
+  body: string
+  justification: string
+  category_id: number | null
+  country: string | null
+  scope: string
+  company_id: number | null
+  client_project_id: number | null
+  keywords: string[]
+  basis: "responsible" | "relayed" | null
+  basis_source: string | null
+  sensitive: boolean
+  source: { kind: string; title: string; date_from: string; date_to: string | null }
+  candidates: {
+    owner: { id: number; display_name: string }
+    role: string
+    state: SuggestionState
+    label: string
+    reason: string | null
+    is_me: boolean
+  }[]
+  co_authors: { id: number; display_name: string; basis: string; source: string | null }[]
 }
 
 const jsonBody = (method: string, body: unknown): RequestInit => ({ method, body: JSON.stringify(body) })
@@ -361,6 +554,8 @@ export type SearchFacets = {
   verifier_roles: string[]
   authors: { id: number; name: string }[]
   teams: { id: number; name: string }[]
+  companies: { id: number; name: string }[]
+  client_projects: { id: number; name: string; company: string }[]
 }
 
 // Query-string keys that can hold several values (OR within one filter).
@@ -373,6 +568,8 @@ export const SEARCH_MULTI_KEYS = [
   "verifier_role",
   "author",
   "team",
+  "company",
+  "client_project",
   "tag",
 ] as const
 export const SEARCH_DATE_KEYS = ["updated_from", "updated_to"] as const
@@ -409,6 +606,35 @@ export const api = {
     markRead: (id: number) => fetchJson(`/notifications/${id}/read`, { method: "POST" }),
   },
   contributions: () => fetchJson<any>("/me/contributions"),
+  companies: () => fetchJson<Company[]>("/companies"),
+  information: {
+    summary: () => fetchJson<OverviewCounts & { badge: number }>("/information/summary"),
+    list: (params: URLSearchParams) => fetchJson<OverviewPage>(`/information?${params.toString()}`),
+    locate: (params: Record<string, string>) =>
+      fetchJson<{ tab: "yours" | "others"; section: OverviewSection | null; page: number }>(
+        `/information/locate?${new URLSearchParams(params).toString()}`,
+      ),
+    meme: (id: number) => fetchJson<Meme>(`/information/memes/${id}`),
+    approve: (id: number, body: { basis: "responsible" | "relayed"; source?: string }) =>
+      fetchJson<{ id: number; meme: Meme }>(`/information/suggestions/${id}/approve`, jsonBody("POST", body)),
+    reject: (id: number, reason?: string) =>
+      fetchJson<{ id: number; meme: Meme }>(`/information/suggestions/${id}/reject`, jsonBody("POST", { reason })),
+    postpone: (id: number) => fetchJson(`/information/suggestions/${id}/postpone`, { method: "POST" }),
+    reopen: (id: number) => fetchJson(`/information/suggestions/${id}/reopen`, { method: "POST" }),
+    withdraw: (id: number) => fetchJson(`/information/suggestions/${id}/withdraw`, { method: "POST" }),
+    prefill: (id: number) => fetchJson<SuggestionPrefill>(`/information/suggestions/${id}/prefill`),
+    vote: (memeId: number, useful: boolean) =>
+      fetchJson<Meme>(`/information/memes/${memeId}/vote`, jsonBody("PUT", { useful })),
+    withdrawVote: (memeId: number) => fetchJson<Meme>(`/information/memes/${memeId}/vote`, { method: "DELETE" }),
+    requestCoauthorship: (
+      memeId: number,
+      body: { basis: "responsible" | "relayed"; source?: string; note?: string; evidence?: string },
+    ) => fetchJson<Meme>(`/information/memes/${memeId}/coauthor-requests`, jsonBody("POST", body)),
+    acceptRequest: (id: number, reason?: string) =>
+      fetchJson(`/information/coauthor-requests/${id}/accept`, jsonBody("POST", { reason })),
+    declineRequest: (id: number, reason?: string) =>
+      fetchJson(`/information/coauthor-requests/${id}/decline`, jsonBody("POST", { reason })),
+  },
   tags: {
     // Existing tags matching `q` (most used first); used for suggestions while typing.
     list: (q = "", opts: { type?: "keyword" | "automatic"; limit?: number } = {}) => {
@@ -424,6 +650,16 @@ export const api = {
     renameTag: (id: number, name: string) => fetchJson<TagSuggestion>(`/admin/tags/${id}`, jsonBody("PATCH", { name })),
     mergeTag: (id: number, intoId: number) =>
       fetchJson<TagSuggestion>(`/admin/tags/${id}/merge`, jsonBody("POST", { into_id: intoId })),
+    createCompany: (body: { name: string; country?: string }) =>
+      fetchJson<Company>("/admin/companies", jsonBody("POST", body)),
+    updateCompany: (id: number, body: { name?: string; country?: string }) =>
+      fetchJson<Company>(`/admin/companies/${id}`, jsonBody("PATCH", body)),
+    deleteCompany: (id: number) => fetchJson(`/admin/companies/${id}`, { method: "DELETE" }),
+    createClientProject: (body: { name: string; company_id: number }) =>
+      fetchJson(`/admin/client-projects`, jsonBody("POST", body)),
+    updateClientProject: (id: number, body: { name?: string; company_id?: number }) =>
+      fetchJson(`/admin/client-projects/${id}`, jsonBody("PATCH", body)),
+    deleteClientProject: (id: number) => fetchJson(`/admin/client-projects/${id}`, { method: "DELETE" }),
     settings: () => fetchJson<any[]>("/admin/settings"),
     updateSetting: (key: string, value: string) => fetchJson(`/admin/settings/${key}?value=${encodeURIComponent(value)}`, { method: "PUT" }),
     mappings: () => fetchJson<any[]>("/admin/verifier-mappings"),
@@ -453,6 +689,9 @@ export const api = {
   people: {
     list: (q = "") => fetchJson<UserBrief[]>(`/people${q ? `?q=${encodeURIComponent(q)}` : ""}`),
     get: (id: number | string) => fetchJson<Profile>(`/people/${id}`),
+    responsibilities: (id: number | string) => fetchJson<Responsibilities>(`/people/${id}/responsibilities`),
+    changeMyBasis: (body: { public_ids: string[]; basis: "responsible" | "relayed"; source?: string }) =>
+      fetchJson<{ changed: number }>("/me/responsibilities", jsonBody("PATCH", body)),
   },
   teams: {
     list: () => fetchJson<any[]>("/teams"),
@@ -490,8 +729,14 @@ export const api = {
       category_id: number
       country: string
       scope: string
+      basis: "responsible" | "relayed"
+      basis_source?: string
+      company_id?: number | null
+      client_project_id?: number | null
       keywords: string[]
       difference_note?: string
+      suggestion_id?: number
+      sensitive_confirmed?: boolean
     }) => fetchJson<Entry>("/entries", { method: "POST", body: JSON.stringify(data) }),
     get: (publicId: string) => fetchJson<Entry>(`/entries/${encodeURIComponent(publicId)}`),
     update: (
@@ -502,6 +747,9 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
+    setMyBasis: (publicId: string, body: { basis: "responsible" | "relayed"; source?: string }) =>
+      fetchJson<Contact>(`/entries/${encodeURIComponent(publicId)}/my-basis`, jsonBody("PUT", body)),
+    basisLog: (publicId: string) => fetchJson<BasisChange[]>(`/entries/${encodeURIComponent(publicId)}/basis-log`),
     history: (publicId: string) =>
       fetchJson<HistoryItem[]>(`/entries/${encodeURIComponent(publicId)}/history`),
     contributors: (publicId: string, version?: number) =>

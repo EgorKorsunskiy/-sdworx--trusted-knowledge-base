@@ -63,6 +63,7 @@ def test_pr_merge_blame(client):
             "proposed_body": f"{s1} Second fact, improved.\n{s3}",
             "proposed_justification": cur["justification"],
             "change_note": "Improve second",
+            "basis": "responsible",
         },
         headers=login(client, 2),
     )

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Northwind Logistics",
+    "country": "BE",
+    "client_projects": ["Warehouse payroll rollout", "Seasonal staffing programme"]
+  },
+  {
+    "name": "Contoso Retail",
+    "country": "NL",
+    "client_projects": ["Store hours migration"]
+  }
+]

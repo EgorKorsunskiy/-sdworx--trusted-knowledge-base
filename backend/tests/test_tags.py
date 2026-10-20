@@ -14,6 +14,7 @@ def _create(client, uid, title="Cut-off rule", keywords=None, country="BE", **ex
         "category_id": 1,
         "country": country,
         "scope": "country",
+        "basis": "responsible",
         "keywords": keywords or [],
     }
     body.update(extra)

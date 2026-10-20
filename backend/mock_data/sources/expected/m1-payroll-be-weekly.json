@@ -1,0 +1,101 @@
+{
+  "scenario": "m1",
+  "source_file": "meetings/m1-payroll-be-weekly.vtt",
+  "memes": [
+    {
+      "source": { "type": "meeting", "title": "Payroll BE weekly", "date": "2026-10-14" },
+      "speaker": "employee.a@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "rule",
+      "statement": "Contractor invoices received after the 25th are processed in the next month's payroll run.",
+      "suggested": {
+        "title": "Cut-off date for contractor invoices",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["contractor", "invoice", "cut-off"],
+      "quotes": [
+        { "speaker": "employee.a@sdworx.example", "text": "So anything that comes in after the twentieth — no, sorry, the twenty-fifth — goes into next month's run.", "at": "00:12:31" },
+        { "speaker": "employee.a@sdworx.example", "text": "So for the November run, if it arrives on the twenty-sixth, it's December.", "at": "00:12:46" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.c@sdworx.example",
+          "quote": { "text": "Yes, that's right, it was in the payroll newsletter in September.", "at": "00:12:40" },
+          "basis_hint": { "basis": "relayed", "source": "Payroll newsletter, September 2026" }
+        }
+      ],
+      "confidence": 0.88,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "meeting", "title": "Payroll BE weekly", "date": "2026-10-14" },
+      "speaker": "team.lead@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "rule",
+      "statement": "An urgent contractor invoice received after the cut-off can only be paid with the Team Lead's approval by e-mail before the payroll run is closed.",
+      "suggested": {
+        "title": "Urgent contractor invoices after the cut-off",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["contractor", "invoice", "cut-off", "urgent", "approval"],
+      "quotes": [
+        { "speaker": "team.lead@sdworx.example", "text": "So, an urgent invoice after the cut-off can still be paid, but only with my approval by e-mail before the run is closed.", "at": "00:15:05" },
+        { "speaker": "team.lead@sdworx.example", "text": "No e-mail, no off-cycle payment.", "at": "00:15:14" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "manager@sdworx.example",
+          "quote": { "text": "Yes, that's how we agreed it with Finance.", "at": "00:15:20" },
+          "basis_hint": null
+        }
+      ],
+      "confidence": 0.84,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "meeting", "title": "Payroll BE weekly", "date": "2026-10-14" },
+      "speaker": "employee.b@sdworx.example",
+      "speaker_basis_hint": { "basis": "relayed", "source": "Finance team, September 2026" },
+      "kind": "how-to",
+      "statement": "Before the first payment to a new contractor, check their VAT number in VIES.",
+      "suggested": {
+        "title": "Check a new contractor's VAT number in VIES",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["contractor", "VAT", "VIES", "fraud"],
+      "quotes": [
+        { "speaker": "employee.b@sdworx.example", "text": "Finance asked everyone to check a new contractor's VAT number in vies before the first payment.", "at": "00:19:40" },
+        { "speaker": "employee.b@sdworx.example", "text": "It takes like one minute, you just enter the number on the European site.", "at": "00:19:52" }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.8,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "traps": [
+    { "at": "00:00:15", "expect": "no_meme", "note": "Small talk about the weekend and the coffee machine" },
+    { "at": "00:03:24", "expect": "no_meme", "note": "Anecdote about last month's late invoices — case data" },
+    { "at": "00:12:38", "expect": "not_confirmer", "note": "B's 'Mm-hmm, ok' is an acknowledgement" },
+    { "at": "00:14:30", "expect": "no_meme", "note": "Manager joining late" },
+    { "at": "00:15:24", "expect": "not_confirmer", "note": "B's 'Ok, clear' is an acknowledgement" },
+    { "at": "00:15:26", "expect": "not_confirmer", "note": "A's opinion about the rule, not a confirmation of its content" },
+    { "at": "00:20:04", "expect": "not_confirmer", "note": "A's 'Mm-hmm' after the VIES point" },
+    { "at": "00:24:15", "expect": "no_meme", "note": "Unanswered question about Luxembourg contractors" },
+    { "at": "00:27:00", "expect": "no_meme", "note": "Action item for C" },
+    { "at": "00:27:07", "expect": "no_meme", "note": "Action item for B" }
+  ],
+  "notes": [
+    "Meme 1: the self-correction (twentieth → twenty-fifth) is inside the first quote; the statement uses the corrected value.",
+    "Meme 2: 'my approval' is resolved to 'the Team Lead's approval' (FR-MA2). Speaker and confirmer are both verifiers of the team (BR-M3).",
+    "Meme 3: 'vies' is a speech-recognition artifact, normalized to 'VIES' in the statement."
+  ]
+}

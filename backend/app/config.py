@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "peerpoint.db"
+MOCK_DATA_DIR = BASE_DIR / "mock_data"
 
 
 class Settings(BaseSettings):

@@ -26,6 +26,8 @@ Each entry stores the information itself plus four kinds of human feedback:
 - **Outdated requests** when information stops being current: an employee explains why, a manager decides.
 - **Contributions** through pull requests, recorded in a git-style version history.
 
+Every entry also tells readers **whom to ask**: each author states whether the topic is their direct responsibility or something they relayed from a named source, and every person's profile lists what they are responsible for.
+
 This document defines what the system does: actors, entry lifecycle, functional requirements, use cases, business rules and screens. Architecture, stack and API are covered in the technical specification.
 
 **PoC scope.** The hackathon proof of concept covers one category (freelance / contractor payroll), one primary role (payroll consultant) and the full loop: add → verify → search → use and cite → vote → request outdated → update via PR.
@@ -42,10 +44,10 @@ Every user is an Employee; Author, Senior expert, Team lead / Manager and Admin 
 | Role | Who | Main responsibilities |
 | --- | --- | --- |
 | Employee | Every SD Worx user | Search, read, add entries, vote, request outdated, open PRs |
-| Author | Creator of an entry | Approves PRs on their entry (their approval merges the PR), updates outdated entries via PR |
+| Author | Creator or contributor of an entry | States their authorship basis and is listed as a contact; the creator approves PRs on their entry (their approval merges the PR) and updates outdated entries via PR |
 | Senior expert | Assigned by Admin per department | Verifies entries and versions; stands in for an inactive author on PRs |
 | Team lead / Manager | From the org hierarchy | Verify entries and versions for their own team only (and stand in for an inactive author on PRs for their own team); managers and higher also decide on outdated requests |
-| Admin | Platform owners | Roles, department mapping, categories, tags, thresholds, teams, projects and their memberships |
+| Admin | Platform owners | Roles, department mapping, categories, tags, thresholds, teams, projects and their memberships, client companies and client projects |
 
 ### Permissions matrix
 
@@ -54,6 +56,7 @@ Every user is an Employee; Author, Senior expert, Team lead / Manager and Admin 
 | Search and read entries | Yes | Yes | Yes | Yes | Yes |
 | Add an entry | Yes | Yes | Yes | Yes | Yes |
 | Edit own unverified draft | Own only | Own only | Own only | Own only | No |
+| Set or change own authorship basis | Own only | Own only | Own only | Own only | Own only |
 | Vote on an entry | Yes, not own | Not own | Not own | Not own | Yes, not own |
 | Request that an entry is marked Outdated (with reason) | Yes | Yes | Yes | Yes | Yes |
 | Approve or reject an outdated request | No | No | No | Managers and higher, author's line only | No |
@@ -61,25 +64,32 @@ Every user is an Employee; Author, Senior expert, Team lead / Manager and Admin 
 | Approve and merge a PR | No | Own entries (never their own PR, unless they are the entry's author) | Only if the entry's author is inactive, mapped departments | Only if the entry's author is inactive, own team | No |
 | Verify an entry version | No | Never own | Mapped departments | Own team (any Manager also by fallback) | Only by fallback, never own |
 | Restore an Outdated entry (still valid) | No | No | No | Managers and higher, author's line only | No |
-| View an employee profile with their teams and projects | Yes | Yes | Yes | Yes | Yes |
-| Manage teams, projects and memberships | No | No | No | No | Yes |
+| View an employee profile with their teams, projects and responsibilities | Yes | Yes | Yes | Yes | Yes |
+| Manage teams, projects, memberships, client companies and client projects | No | No | No | No | Yes |
 | Manage roles, mapping, settings | No | No | No | No | Yes |
 
 ## 3. Key concepts and entry lifecycle
 
 An entry's trust is always tied to one version: any change creates a new version that starts Unverified.
 
-- **Entry** — one piece of knowledge with a permanent public ID, a scope (country, EU-wide, universal) and a department.
+- **Entry** — one piece of knowledge with a permanent public ID, a scope and a department.
+- **Scope** — where the information is valid, from broad to narrow: universal, EU-wide, country, company (one client company of SD Worx) or client project (one project at a client company).
+- **Company / Client project** — records maintained by Admins that company- and client-project-scoped entries point to; a client project belongs to one company. A client project is not an internal Project (see below).
+- **Tag** — a shared label entity (e.g. `cut-off`, `limosa`) linked many-to-many to entries; clicking a tag opens Search filtered by it.
 - **Version** — a full snapshot of the entry's content and tags. Verification and votes attach here.
 - **Status** — Unverified, Verified or Outdated, per version.
 - **Pull request (PR)** — a proposed change to an existing entry, used for duplicates and for updating outdated information. Merging a PR adds a new version to that same entry; it never creates a second entry.
 - **Outdated request** — an employee's request, with a required reason, to mark a version Outdated. It changes nothing until a manager approves it.
 - **Reference** — the public ID, optionally with a version, used to cite an entry.
 - **Contributor** — anyone whose text is part of the entry: the original author and every employee whose merged PR added or changed a fragment. Each fragment knows which contributors are responsible for it.
-- **Employee** — a person in the SD Worx organisation, modelled as a full entity rather than a plain name. An employee has a profile (name, title, department, country, roles, reputation) and is associated with teams and projects. Wherever the system shows a person (author, contributor, verifier, voter), it is a link to this profile.
+- **Employee** — a person in the SD Worx organisation, modelled as a full entity rather than a plain name. An employee has a profile (name, title, department, country, roles, reputation) and is associated with teams and projects; the profile also has a **Responsibilities** tab listing the entries they authored or co-authored. Wherever the system shows a person (author, contributor, verifier, voter), it is a link to this profile.
 - **Team** — an organisational unit with a department, a lead or manager and a set of member employees. Teams come from the org hierarchy and define verification scope for team leads and managers.
-- **Project** — a time-bound or ongoing piece of work with a name, description, status (active, completed), a lead and a set of member employees, each with a role on the project. Projects can cut across teams and departments.
+- **Project** — an internal, time-bound or ongoing piece of work with a name, description, status (active, completed), a lead and a set of member employees, each with a role on the project. Projects can cut across teams and departments. A project is about who works on what; it is not a scope level and never names a client.
 - **Membership** — the link between an employee and a team or project, with the employee's role there and, for projects, a start and optional end date.
+- **Authorship basis** — what an author or contributor states about their link to the information:
+  - **Responsible** — answering questions on this topic is part of their job; they expect to be asked and will answer.
+  - **Relayed** — they read or heard the information and added it; they must name the **source** (document, link, regulation, newsletter, colleague).
+- **Contacts** — the authors and contributors of an entry as shown to readers, with their basis: the people to ask about it, responsible ones first.
 - **Access token** — a short-lived signed JWT that identifies the signed-in employee and carries their roles; sent with every request.
 - **Refresh token** — a longer-lived, revocable token used to obtain new access tokens without signing in again.
 
@@ -126,6 +136,7 @@ Requirements are grouped by module. Phase marks what the hackathon PoC delivers 
 | FR-E4 | Every entry gets a permanent unique public ID on creation that never changes. | MVP |
 | FR-E5 | A new entry is always saved as Unverified. | MVP |
 | FR-E6 | Entries are shown in the reader's language first when a translation exists. | Phase 2 |
+| FR-E7 | An entry can also have a narrower scope: company-specific (one client company) or client-project-specific (one project at a client company). These scopes point to a company or client-project record (BR-11). | Phase 2 |
 
 ### Verification
 
@@ -136,7 +147,7 @@ Requirements are grouped by module. Phase marks what the hackathon PoC delivers 
 | FR-V3 | A verifier can send a version back to the author with a comment. | MVP |
 | FR-V4 | Admins maintain the mapping of which senior experts may verify which departments. Team leads and managers verify only entries of their own team, based on the org hierarchy. If nobody is in scope for an entry, any Manager or Admin can verify it (fallback). Only the current version of an entry is queued for verification. | MVP |
 | FR-V5 | Verification attaches to a version, not to the entry. A new version starts Unverified. | MVP |
-| FR-V6 | Unverified entries show who to ask: the author and verifiers of that department. | MVP |
+| FR-V6 | Unverified entries show who to ask: the author and verifiers of that department (see the Contacts block, FR-K3). | MVP |
 
 ### Voting (peer review)
 
@@ -157,12 +168,23 @@ Requirements are grouped by module. Phase marks what the hackathon PoC delivers 
 | FR-S2 | Results are ranked by relevance × trust weight (see [BR-1](#br-1-search-ranking)). | MVP |
 | FR-S3 | Each result shows status and role badge, correct / incorrect vote counts, country, date and author. | MVP |
 | FR-S4 | Unverified entries appear in search right after they are saved, with an **Unverified** tag; Outdated entries carry an **Outdated** tag. Both rank lower but are never hidden. | MVP |
-| FR-S5 | The search bar on the main page has a filter panel. Available filters: country, department, category, status (Unverified, Verified, Outdated), scope (country-specific, EU-wide, universal), verifier role, author, team (entries authored by members of the team), project (entries authored by members of the project) and last-updated date range. | Phase 2 |
+| FR-S5 | The search bar on the main page has a filter panel. Available filters: country, department, category, status (Unverified, Verified, Outdated), scope (country-specific, EU-wide, universal, company, client project), verifier role, author, team (entries authored by members of the team), company (entries scoped to that company or to one of its client projects), client project (entries scoped to that client project), tags (FR-T4) and last-updated date range. Internal projects are not a search filter. | Phase 2 |
 | FR-S6 | Filters combine with AND across different filters; within one filter, several selected values combine with OR. | Phase 2 |
 | FR-S7 | Filters narrow the result set only; the remaining results keep the ranking of [BR-1](#br-1-search-ranking). No filter is applied by default; the searcher's country influences ranking, not filtering. | Phase 2 |
 | FR-S8 | Active filters are shown as removable chips next to the search bar, with a "clear all" action and the number of matching results. | Phase 2 |
 | FR-S9 | The query and active filters are reflected in the page URL, so a filtered search can be bookmarked, shared and restored with the back button. | Phase 2 |
 | FR-S10 | Filters can be used without a text query, to browse entries by filter alone. | Phase 2 |
+| FR-S11 | Each result also shows its scope, with the company or client project, and its tags, which are clickable (FR-T3). | Phase 2 |
+
+### Tags
+
+| ID | Requirement | Phase |
+| --- | --- | --- |
+| FR-T1 | Tags are shared entities with a unique, normalized name (lowercase, trimmed) and a type: **keyword** (set by people) or **automatic** (country, date, author, department, role — set by the system). A tag can be linked to many entries, and an entry to many tags. | Phase 2 |
+| FR-T2 | While the user types a tag, existing tags are suggested; a new tag is created only when none matches. | Phase 2 |
+| FR-T3 | Every tag shown in the app — on the entry page, in search results, in the approval tab, on profiles — is clickable and opens the Search page with that tag pre-filled as a filter. The tag is part of the URL (FR-S9, e.g. `/search?tag=cut-off`), so the link can be shared. | Phase 2 |
+| FR-T4 | Search can filter by one or several tags (FR-S5), combined with the text query and the other filters. | Phase 2 |
+| FR-T5 | Admins can rename and merge tags; all links to entries are kept. | Phase 2 |
 
 ### Citing
 
@@ -211,6 +233,26 @@ Every piece of information shows who stands behind each part of it, so a reader 
 | FR-H6 | Clicking a log item shows a diff of that change: which text fragments it added, edited or removed, and by whom. | Phase 2 |
 | FR-H7 | History is append-only; no user can delete or rewrite past versions. | MVP |
 | FR-H8 | Every diff, wherever it is shown (change log, approval tab for pending PRs), has a header naming the author of the change, the date, the change note and the two versions compared. For a merged change it also names the approvers. Each added, edited or removed fragment is attributed to its author, and the author's name links to their profile. | Phase 2 |
+
+### Contacts and profiles
+
+Authorship tells future readers whom they can contact about a topic, and on what basis.
+
+| ID | Requirement | Phase |
+| --- | --- | --- |
+| FR-K1 | When adding an entry, the author states their authorship basis: **Responsible** or **Relayed**. Relayed requires a source, which also prefills the justification. | Phase 2 |
+| FR-K2 | An author can change their own basis and source at any time, e.g. after a change of role. The change is recorded in the change log and does not create a new version or reset verification. | Phase 2 |
+| FR-K3 | The entry page shows a **Contacts** block with all authors and contributors: responsible ones first, labelled "Responsible for this topic", then relayed ones, labelled "Added from source" with the source. | Phase 2 |
+| FR-K4 | Each contact shows name, title, department and reputation, links to their profile and has a contact action (Teams chat or e-mail). | Phase 2 |
+| FR-K5 | Users who left the company are not shown as contacts. If no active responsible person remains, the block says "No responsible contact" and lists the verifiers in scope (FR-V6). | Phase 2 |
+| FR-K6 | Verifiers see each author's basis and source in the approval tab. | Phase 2 |
+| FR-K7 | The Responsibilities tab is part of the employee profile (FR-U4); every author and contributor name links to that profile (FR-U3). | Phase 2 |
+| FR-K8 | The person's entries on the profile (FR-U6) are shown in a **Responsibilities** tab: every entry the person authored or co-authored, in two groups: **Responsible** — their responsibilities — and **Relayed**, with the source they named. Each item shows title, public ID, status badge and whether the person is author or co-author. | Phase 2 |
+| FR-K9 | The tab opens with the person's **areas of responsibility**: the categories, scopes (countries, companies, client projects) and tags of the entries where they are Responsible. | Phase 2 |
+| FR-K10 | On their own profile, a user can change their basis for one or several listed entries at once, e.g. to hand over responsibility after moving to another team. | Phase 2 |
+| FR-K11 | A PR author states a basis for their change when opening the PR and becomes a contact with it once the PR is merged. | Phase 2 |
+| FR-K12 | Search results show a "Responsible contact" marker on entries with at least one active responsible person. | Phase 2 |
+| FR-K13 | Responsible people are asked once a year to reconfirm each of their responsibilities; without an answer they are shown as Relayed. | Phase 2 |
 
 ### Reputation
 
@@ -262,13 +304,13 @@ The PoC uses a demo user picker. Phase 2 replaces it with real sign-in based on 
 
 ## 5. Use cases
 
-Nine use cases cover the demo storyline end to end. UC-1 to UC-5 are MVP; UC-6 (pull requests), UC-7 (contributors), UC-8 (employee profiles) and UC-9 (sign-in) depend on Phase 2 requirements and are Phase 2. UC-3 also has Phase 2 acceptance criteria for search filters.
+Ten use cases cover the demo storyline end to end. UC-1 to UC-5 are MVP; UC-6 (pull requests), UC-7 (contributors), UC-8 (employee profiles), UC-9 (sign-in) and UC-10 (responsibilities) depend on Phase 2 requirements and are Phase 2. UC-1 and UC-3 also have Phase 2 acceptance criteria.
 
 ### UC-1 Add an entry
 
-**Actor:** Employee A · **Covers:** FR-E1–E5, FR-D1–D3, FR-N1
+**Actor:** Employee A · **Covers:** FR-E1–E5, FR-D1–D3, FR-K1, FR-N1
 
-1. A opens "Add entry", fills in title, content, justification, category and tags.
+1. A opens "Add entry", fills in title, content, justification, category and tags. (Phase 2: A also states whether the topic is A's responsibility or relayed from a source.)
 2. While A types, the system checks similarity with existing entries.
 3. No similar entry: A submits; the entry is saved as Unverified with a new public ID.
 4. Verifiers in scope are notified.
@@ -280,6 +322,8 @@ Nine use cases cover the demo storyline end to end. UC-1 to UC-5 are MVP; UC-6 (
 - [ ] The new entry has status Unverified and a unique public ID.
 - [ ] The entry is findable in search immediately, tagged Unverified.
 - [ ] Required fields (title, content, category, country) are validated before save.
+- [ ] (Phase 2) A company or client-project scope requires choosing the company or client project.
+- [ ] (Phase 2) An entry cannot be saved without an authorship basis, and a Relayed basis needs a source.
 - [ ] The entry appears in the approval tab of every verifier in scope, and nowhere else as pending.
 - [ ] The duplicate warning is advisory: saving despite a warning follows the same rules as any other new entry (Unverified, published immediately, verifier approval).
 - [ ] An optional "why is this different?" note is stored on the entry and shown to verifiers in the approval tab.
@@ -300,9 +344,9 @@ Nine use cases cover the demo storyline end to end. UC-1 to UC-5 are MVP; UC-6 (
 
 ### UC-3 Search and use an entry
 
-**Actor:** Employee B · **Covers:** FR-S1–S10, FR-C1–C2
+**Actor:** Employee B · **Covers:** FR-S1–S11, FR-T3–T4, FR-C1–C2
 
-1. B types a question in the search bar, optionally narrowing it with filters (for example country, status or team).
+1. B types a question in the search bar, optionally narrowing it with filters (for example country, status, team or client project), or clicks a tag on an entry to see everything with that tag.
 2. The system returns ranked results with badges.
 3. B opens an entry, reads it and copies its reference to cite in their work.
 
@@ -316,6 +360,7 @@ Nine use cases cover the demo storyline end to end. UC-1 to UC-5 are MVP; UC-6 (
 - [ ] (Phase 2) Active filters appear as removable chips; "clear all" restores the unfiltered result list.
 - [ ] (Phase 2) Filtering does not change the relative order of the remaining results.
 - [ ] (Phase 2) Reloading the page or sharing the URL reproduces the same query and filters.
+- [ ] (Phase 2) Clicking a tag opens Search with that tag pre-filled, and the resulting URL can be shared.
 
 ### UC-4 Vote on an entry
 
@@ -425,6 +470,23 @@ Nine use cases cover the demo storyline end to end. UC-1 to UC-5 are MVP; UC-6 (
 - [ ] Sign-in, refresh, sign-out and denied requests appear in the audit log.
 - [ ] The demo user picker is unavailable when demo mode is disabled.
 
+### UC-10 See whom to ask and what they are responsible for
+
+**Actors:** Employee B, Employee A · **Covers:** FR-K2–K10, FR-U4
+
+1. B reads an entry; its Contacts block shows A as "Responsible for this topic" and C as "Added from source", with C's source.
+2. B opens A's employee profile; its Responsibilities tab shows A's areas of responsibility, the entries A is responsible for, then those A relayed.
+3. B contacts A through Teams from the profile.
+4. Later A moves to another team and, on their own Responsibilities tab, switches several entries to Relayed, naming the team handbook as source.
+
+**Acceptance criteria**
+
+- [ ] Responsible people are listed before relayed ones, on the entry and on the profile.
+- [ ] Every relayed item shows its source.
+- [ ] People who left the company are not shown as contacts; an entry with no responsible person left shows "No responsible contact" and the verifiers in scope.
+- [ ] The Responsibilities tab shows a viewer only entries they could find in search.
+- [ ] Changing a basis is recorded in the change log and creates no new version.
+
 ## 6. Business rules
 
 All thresholds and weights below are configurable by Admins; the values given are PoC defaults.
@@ -437,7 +499,7 @@ The trust weight combines, in order of importance:
 
 1. Verification status and verifier's role level (Manager, Team lead, Senior expert, then Unverified).
 2. Votes on the current version: correct votes raise the weight, incorrect votes lower it. A vote from a Senior expert counts 1.3× (30 % more) than a vote from other employees.
-3. Country match: the searcher's country first, unless the entry is universal or EU-wide.
+3. Scope match: the searcher's country first, unless the entry is universal or EU-wide. Company- and client-project-scoped entries rank first when the search is filtered by that company or client project, and below broader entries otherwise.
 4. Freshness: Outdated entries drop in ranking; recency is a minor factor.
 5. Author reputation, as a tie-breaker.
 
@@ -497,7 +559,7 @@ Point values are set by Admins.
 
 - Every person in the system is an Employee entity; names are never free text. Deactivated employees remain linked from historical entries and keep a read-only profile.
 - A profile shows all of an employee's team and project memberships, past and current. Membership data is visible to every signed-in employee.
-- Project names and descriptions must not contain confidential customer data, in line with the rule for the "where" field of a usage record.
+- Project names and descriptions must not contain confidential customer data and never name a client, in line with the rule for the "where" field of a usage record; a client is named only through a company or client-project scope (BR-11).
 - Team structure is the source for verification scope; project membership never grants or limits verification authority.
 - Memberships are maintained by Admins in Phase 2; a later sync from the HR or org system replaces manual maintenance.
 
@@ -510,21 +572,38 @@ Point values are set by Admins.
 - The refresh token is held in an HttpOnly, secure cookie; the access token is kept in memory only and not in local storage.
 - Revoking an employee's refresh tokens signs them out everywhere once their access token expires.
 
+### BR-10 Authorship basis and contacts
+
+- Every author and contributor has exactly one basis per entry at any time: Responsible, or Relayed with a source.
+- "Responsible" is a commitment, not a title: the person expects to be asked about the topic and will answer.
+- The basis is self-declared. It is not a verification, does not change the entry's status and does not affect ranking; verifiers see it as context when they review.
+- The source of a relayed item is visible to every reader, so it must not contain confidential customer data.
+- Only the person themselves can change their basis; every change stays in the change log, which is append-only.
+- A profile's Responsibilities tab shows other viewers only entries they could find in search.
+
+### BR-11 Scope
+
+- Scope levels from broad to narrow: universal, EU-wide, country, company, client project. A client project belongs to one client company, and a company has a country, which prefills the entry's country.
+- An entry takes the widest scope at which it is still valid: a rule that applies to one client only is company-specific, even though the client is in Belgium.
+- A client's name is stored only in the company record and shown only in the scope badge (company, or client project with its company). Entry content, client-project names, and internal project names and descriptions never name the client; they refer to the client project instead. The content must not contain other confidential customer data either, such as contract terms or personal data of the client's staff.
+- Client projects are separate from internal projects (BR-8): an internal project is about who works on what and is never a scope.
+- Client companies and client projects are maintained by Admins; company- and client-project-scoped entries are visible to all employees like any other entry.
+
 ## 7. Screens and notifications
 
 Nine screens cover all use cases; the team and project pages share one layout.
 
 | Screen | Main content | Key actions | Use cases |
 | --- | --- | --- | --- |
-| Search and results | Search bar, filter panel (country, department, category, status, scope, verifier role, author, team, project, date range), active-filter chips, ranked results with badges | Search, filter, clear filters, open entry | UC-3 |
-| Entry page | Content, justification, tags, status and role badge, correct / incorrect vote counts, usage records, reason if Outdated, list of contributors, git-style change log at the bottom; every person shown is a link to their profile | Copy reference, report usage (vote), request outdated, suggest change, select a line to see its contributors, click a contributor to highlight their text, click a log item to see what changed, click a person to open their profile | UC-3, UC-4, UC-5, UC-7, UC-8 |
-| Add entry form | Fields and tags, live duplicate warning with similar entries | Save (also after a duplicate warning, with optional "why is this different?" note), create PR instead | UC-1, UC-6 |
-| Approval tab | Queue of pending versions and PRs in scope, diff view with the change author, date and change note; for managers also outdated requests | Verify, send back, approve or reject PR, approve or reject outdated request, restore Outdated entry | UC-2, UC-5, UC-6 |
+| Search and results | Search bar, filter panel (country, department, category, status, scope, verifier role, author, team, company, client project, tags, date range), active-filter chips, ranked results with badges, scope and clickable tags; filters and a tag can be pre-filled from the URL | Search, filter, clear filters, open entry, click a tag | UC-3 |
+| Entry page | Content, justification, scope, clickable tags, status and role badge, correct / incorrect vote counts, usage records, reason if Outdated, list of contributors, Contacts block (authors and contributors with their basis, responsible first), git-style change log at the bottom; every person shown is a link to their profile | Copy reference, report usage (vote), request outdated, suggest change, contact an author, select a line to see its contributors, click a contributor to highlight their text, click a log item to see what changed, click a person to open their profile | UC-3, UC-4, UC-5, UC-7, UC-8, UC-10 |
+| Add entry form | Fields, scope with a company or client-project picker, tags with suggestions of existing tags, authorship basis (Responsible / Relayed with source), live duplicate warning with similar entries | Save (also after a duplicate warning, with optional "why is this different?" note), create PR instead | UC-1, UC-6 |
+| Approval tab | Queue of pending versions and PRs in scope, diff view with the change author, date and change note, each author's basis and source; for managers also outdated requests | Verify, send back, approve or reject PR, approve or reject outdated request, restore Outdated entry | UC-2, UC-5, UC-6 |
 | My contributions | Own entries, PRs and their status, reputation | Edit drafts, respond to PRs | UC-1, UC-6 |
-| Employee profile | Name, title, department, country, role badges, reputation, all teams and projects with the employee's role and period, their entries | Open a team or project, open one of their entries | UC-8 |
+| Employee profile | Name, title, department, country, role badges, reputation, all teams and projects with the employee's role and period; **Responsibilities** tab with areas of responsibility and their entries grouped into Responsible and Relayed | Open a team or project, open one of their entries, contact the person; on one's own profile, change the basis for one or several entries | UC-8, UC-10 |
 | Team / project page | Name, description, status (projects), lead, members with roles | Open a member's profile | UC-8 |
 | Sign-in | Sign-in with the identity provider (demo user picker in demo mode only) | Sign in, sign out | UC-9 |
-| Admin panel | Roles, department mapping, categories, teams, projects and memberships, token lifetimes, thresholds, point values | Manage settings | — |
+| Admin panel | Roles, department mapping, categories, tags, teams, projects and memberships, client companies and client projects, token lifetimes, thresholds, point values | Manage settings | — |
 
 ### Notifications
 
@@ -543,7 +622,7 @@ Nine screens cover all use cases; the team and project pages share one layout.
 
 **MVP (hackathon PoC):** entries with tags and public IDs; Unverified / Verified / Outdated statuses; approval tab with role badges; voting; ranked search with a single search bar; keyword-based advisory duplicate warning; outdated requests with manager decision and restore; version snapshots; reputation; in-app notifications; demo user picker as sign-in.
 
-**Phase 2:** pull requests approved by the entry author (the merged version then follows normal verification); embedding-based duplicate detection; contributor list, line-level contributors, contributor highlighting and change log with diffs; citation tracking; translations; e-mail, Teams and Slack notifications; analytics; employee, team and project entities with employee profile pages reachable from the entry page; JWT-based authentication and authorization with an OAuth2 authorization code flow; filter panel on the main search page.
+**Phase 2:** pull requests approved by the entry author (the merged version then follows normal verification); embedding-based duplicate detection; contributor list, line-level contributors, contributor highlighting and change log with diffs; citation tracking; translations; e-mail, Teams and Slack notifications; analytics; employee, team and project entities with employee profile pages reachable from the entry page; JWT-based authentication and authorization with an OAuth2 authorization code flow; filter panel on the main search page; tags as shared entities that link to Search, with renaming and merging; company and client-project scopes; authorship basis with the Contacts block and the profile's Responsibilities tab, also for PR authors, a "Responsible contact" marker in search and yearly reconfirmation of responsibilities; ranking by the searcher's own companies and client projects.
 
 ### Open questions
 
@@ -552,4 +631,5 @@ Nine screens cover all use cases; the team and project pages share one layout.
 - [ ] Which identity provider will Peerpoint use (for example Entra ID or Okta), and does it expose employee ID and group claims we can map to roles?
 - [ ] Where do teams, projects and memberships come from long term: manual Admin maintenance, or a sync from the HR or org system?
 - [ ] Is it acceptable that every signed-in employee can see all of a colleague's team and project memberships, or do some projects need restricted visibility?
-- [ ] Should the team and project search filters match entries by the author's membership only, or should entries be linkable to a project directly?
+- [ ] Should company- and client-project-scoped entries be visible only to employees who work for that client or on that client project?
+- [ ] Should a responsible author raise an entry's trust weight in search, and should "Responsible" be checked against the org structure (e.g. the author's team owns the topic) instead of being self-declared?

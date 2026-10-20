@@ -1,0 +1,102 @@
+{
+  "scenario": "m3",
+  "source_file": "meetings/m3-q3-contractor-review.vtt",
+  "memes": [
+    {
+      "source": { "type": "meeting", "title": "Q3 contractor payroll review", "date": "2026-10-01" },
+      "speaker": "manager@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "decision",
+      "statement": "From the November 2026 run, every contractor invoice above €5,000 needs a four-eyes check before payment.",
+      "suggested": {
+        "title": "Four-eyes check for contractor invoices above €5,000",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["four-eyes check", "contractor", "invoice", "duplicate payment"],
+      "quotes": [
+        { "speaker": "manager@sdworx.example", "text": "So, decision: every contractor invoice above five thousand euros gets a four-eyes check, starting with the November run.", "at": "00:22:33" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "team.lead@sdworx.example",
+          "quote": { "text": "Agreed, I'll make sure the team applies it.", "at": "00:22:43" },
+          "basis_hint": { "basis": "responsible" }
+        }
+      ],
+      "confidence": 0.9,
+      "sensitive": false,
+      "similar_entries": []
+    },
+    {
+      "source": { "type": "meeting", "title": "Q3 contractor payroll review", "date": "2026-10-01" },
+      "speaker": "senior.expert@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "fact",
+      "statement": "Freelancers are not declared in the DmfA, which is the employer declaration for employees; self-employed people pay their social contributions through their social insurance fund.",
+      "suggested": {
+        "title": "Freelancers are not declared in the DmfA",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["DmfA", "self-employed", "social insurance fund", "social contributions"],
+      "quotes": [
+        { "speaker": "senior.expert@sdworx.example", "text": "freelancers are not declared in the DmfA, that's the employer declaration for employees.", "at": "00:38:08" },
+        { "speaker": "senior.expert@sdworx.example", "text": "Self-employed people pay their contributions through their social insurance fund.", "at": "00:38:16" },
+        { "speaker": "senior.expert@sdworx.example", "text": "the DmfA is only for employees.", "at": "00:38:25" }
+      ],
+      "confirmed_by": [
+        {
+          "user": "employee.a@sdworx.example",
+          "quote": { "text": "Hm. You're right, I mixed that up in the entry.", "at": "00:38:31" },
+          "basis_hint": null
+        }
+      ],
+      "confidence": 0.87,
+      "sensitive": false,
+      "similar_entries": [{ "public_id": "PP-BE-FRE-00001", "score": 0.72 }]
+    },
+    {
+      "source": { "type": "meeting", "title": "Q3 contractor payroll review", "date": "2026-10-01" },
+      "speaker": "team.lead@sdworx.example",
+      "speaker_basis_hint": { "basis": "responsible" },
+      "kind": "how-to",
+      "statement": "Before paying a contractor invoice, search the payment log by invoice number and by the contractor's VAT number; if either is already there, check before paying.",
+      "suggested": {
+        "title": "Prevent duplicate contractor payments",
+        "category": "Freelance / contractor payroll",
+        "country": "BE",
+        "scope": "country"
+      },
+      "tags": ["duplicate payment", "payment log", "invoice", "VAT"],
+      "quotes": [
+        { "speaker": "team.lead@sdworx.example", "text": "before paying a contractor invoice, search the payment log by the invoice number and the contractor's VAT number.", "at": "00:15:00" },
+        { "speaker": "team.lead@sdworx.example", "text": "If either one is already there, stop and check before paying.", "at": "00:15:12" }
+      ],
+      "confirmed_by": [],
+      "confidence": 0.85,
+      "sensitive": false,
+      "similar_entries": []
+    }
+  ],
+  "traps": [
+    { "at": "00:04:00", "expect": "not_quoted", "note": "Contractor name, invoice number and amount of the duplicate payment" },
+    { "at": "00:04:20", "expect": "not_confirmer", "note": "Manager's 'Ok, ok.'" },
+    { "at": "00:04:22", "expect": "no_meme", "note": "Who processed the duplicate payment — incident detail" },
+    { "at": "00:15:17", "expect": "not_confirmer", "note": "Manager's 'Ok, ok. That's simple enough.' is an acknowledgement and an evaluation" },
+    { "at": "00:22:05", "expect": "no_meme", "note": "Team Lead's proposal; only the Manager's final decision is a meme" },
+    { "at": "00:22:12", "expect": "no_meme", "note": "B's €2,500 counter-proposal was not adopted" },
+    { "at": "00:22:26", "expect": "not_confirmer", "note": "A's opinion came before the decision; it is not a confirmation of it" },
+    { "at": "00:22:47", "expect": "not_confirmer", "note": "B's 'Ok.'" },
+    { "at": "00:38:00", "expect": "no_meme", "note": "A's wrong DmfA statement was corrected (FR-MT5)" },
+    { "at": "00:38:21", "expect": "no_meme", "note": "A's objection before admitting the mistake" },
+    { "at": "00:38:35", "expect": "no_meme", "note": "Task to update the existing entry" },
+    { "at": "00:52:05", "expect": "no_meme", "note": "Tooling deferred to next quarter" }
+  ],
+  "notes": [
+    "Meme 2 contradicts the seeded entry PP-BE-FRE-00001. The listed score is a semantic (embedding) score: the MVP keyword similarity of this meme and that entry is 0.11, below the 60 % threshold, so it is only found with embeddings (FR-MA9 Phase 2) or a lower threshold for listing related entries.",
+    "Memes 1 and 3: the Manager and the Team Lead are both verifiers of the team (BR-M3)."
+  ]
+}

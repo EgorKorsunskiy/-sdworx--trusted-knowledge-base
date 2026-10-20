@@ -1,12 +1,15 @@
+import json
 from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from app.config import MOCK_DATA_DIR
 from app.database import Base, engine
 from app.services.public_id import make_public_id
 from app.models import (
     Category,
     Entry,
+    EntryScope,
     EntryVersion,
     Project,
     ProjectMembership,
@@ -22,6 +25,83 @@ from app.models import (
     VersionStatus,
 )
 
+HISTORY_DEMO_TAG = "history-demo"
+
+
+def _load(name: str) -> list[dict]:
+    """Read mock_data/<name>.json; a missing file means no rows of that kind."""
+    path = MOCK_DATA_DIR / f"{name}.json"
+    if not path.exists():
+        return []
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _tag(db: Session, name: str) -> Tag:
+    tag = db.query(Tag).filter(Tag.name == name).first()
+    if tag is None:
+        tag = Tag(name=name)
+        db.add(tag)
+        db.flush()
+    return tag
+
+
+def _add_entry(db: Session, data: dict, users: dict[str, User], now: datetime) -> Entry:
+    """Create one entry from its mock_data form; see mock_data/README.md for the fields."""
+    author = users[data["author"]]
+    category = db.query(Category).filter(Category.name == data["category"]).one()
+    if data.get("team"):
+        team = db.query(Team).filter(Team.name == data["team"]).one()
+    else:
+        # Like a real submission, the entry belongs to the author's primary team
+        membership = db.query(TeamMembership).filter_by(user_id=author.id, is_primary=True).first()
+        team = membership.team if membership else None
+
+    def at(days_ago: int | None) -> datetime:
+        return now - timedelta(days=days_ago) if days_ago is not None else now
+
+    versions = data["versions"]
+    country = data.get("country")
+    entry = Entry(
+        public_id=data.get("public_id") or make_public_id(db, country, category.name),
+        scope=data.get("scope", EntryScope.COUNTRY.value),
+        department=data.get("department") or author.department or "General",
+        country=country,
+        category_id=category.id,
+        author_id=author.id,
+        team_id=team.id if team else None,
+        created_at=at(versions[0].get("created_days_ago")),
+        updated_at=at(versions[-1].get("created_days_ago")),
+    )
+    db.add(entry)
+    db.flush()
+
+    for name in data.get("tags", []):
+        entry.tags.append(_tag(db, name))
+
+    for number, v in enumerate(versions, start=1):
+        version = EntryVersion(
+            entry_id=entry.id,
+            version_number=number,
+            title=v["title"],
+            body=v["body"],
+            justification=v.get("justification"),
+            status=v.get("status", VersionStatus.UNVERIFIED.value),
+            change_note=v.get("change_note"),
+            edited_by_id=users[v.get("edited_by", data["author"])].id,
+            created_at=at(v.get("created_days_ago")),
+        )
+        db.add(version)
+        db.flush()
+        for ver in v.get("verifications", []):
+            db.add(Verification(
+                version_id=version.id,
+                verifier_id=users[ver["verifier"]].id,
+                role=ver["role"],
+                action="verify",
+                created_at=at(ver.get("days_ago")),
+            ))
+    return entry
+
 
 def seed_all() -> None:
     Base.metadata.create_all(bind=engine)
@@ -31,152 +111,55 @@ def seed_all() -> None:
             print("Database already seeded.")
             return
 
-        # Default category
-        payroll_category = Category(
-            name="Freelance / contractor payroll",
-            description="Rules and guidance for freelance and contractor payroll in Belgium/EU",
-            is_default=True,
-        )
-        db.add(payroll_category)
+        for data in _load("categories"):
+            db.add(Category(**data))
+
+        teams = _load("teams")
+        for data in teams:
+            db.add(Team(name=data["name"], department=data["department"], description=data.get("description")))
         db.flush()
 
-        # Team: Payroll Consultants Belgium
-        payroll_team = Team(
-            name="Payroll Consultants Belgium",
-            department="Payroll",
-            description="Belgian payroll consulting team",
-        )
-        db.add(payroll_team)
-        db.flush()
-
-        # Users
-        users_data = [
-            {
-                "email": "employee.a@sdworx.example",
-                "display_name": "Employee A",
-                "department": "Payroll",
-                "title": "Payroll Consultant",
-                "roles": [RoleType.EMPLOYEE.value],
-            },
-            {
-                "email": "employee.b@sdworx.example",
-                "display_name": "Employee B",
-                "department": "Payroll",
-                "title": "Payroll Consultant",
-                "roles": [RoleType.EMPLOYEE.value],
-            },
-            {
-                "email": "employee.c@sdworx.example",
-                "display_name": "Employee C",
-                "department": "Payroll",
-                "title": "Payroll Consultant",
-                "roles": [RoleType.EMPLOYEE.value],
-            },
-            {
-                "email": "senior.expert@sdworx.example",
-                "display_name": "Senior Expert",
-                "department": "Payroll",
-                "title": "Senior Payroll Expert",
-                "roles": [RoleType.EMPLOYEE.value, RoleType.EXPERT.value],
-            },
-            {
-                "email": "team.lead@sdworx.example",
-                "display_name": "Team Lead",
-                "department": "Payroll",
-                "title": "Payroll Team Lead",
-                "roles": [RoleType.EMPLOYEE.value, RoleType.TEAM_LEAD.value],
-            },
-            {
-                "email": "manager@sdworx.example",
-                "display_name": "Manager",
-                "department": "Payroll",
-                "title": "Payroll Manager",
-                "roles": [RoleType.EMPLOYEE.value, RoleType.MANAGER.value],
-            },
-            {
-                "email": "admin@sdworx.example",
-                "display_name": "Admin",
-                "department": "Platform",
-                "title": "Platform Admin",
-                "roles": [RoleType.EMPLOYEE.value, RoleType.ADMIN.value],
-            },
-        ]
-
-        created_users: dict[str, User] = {}
-        for data in users_data:
+        # Users are keyed by email; insertion order defines their ids
+        users: dict[str, User] = {}
+        for data in _load("users"):
             u = User(
                 email=data["email"],
                 display_name=data["display_name"],
-                department=data["department"],
-                title=data["title"],
+                department=data.get("department"),
+                title=data.get("title"),
+                country=data.get("country"),
             )
             db.add(u)
             db.flush()
-            created_users[data["display_name"]] = u
-            for role in data["roles"]:
-                db.add(UserRole(user_id=u.id, role=role.value if hasattr(role, "value") else role))
+            users[u.email] = u
+            for role in data.get("roles", [RoleType.EMPLOYEE.value]):
+                db.add(UserRole(user_id=u.id, role=role))
+            # Senior experts: departments they may verify
+            for department in data.get("expert_departments", []):
+                db.add(VerifierDepartmentMap(user_id=u.id, department=department))
 
-        # Team memberships: primary for A/B/C + lead/manager
-        for name in ["Employee A", "Employee B", "Employee C", "Team Lead", "Manager"]:
-            u = created_users[name]
-            db.add(TeamMembership(user_id=u.id, team_id=payroll_team.id, is_primary=True))
-
-        # Senior expert mapped to Payroll department
-        expert = created_users["Senior Expert"]
-        db.add(VerifierDepartmentMap(user_id=expert.id, department="Payroll"))
-
-        # System settings
-        settings = [
-            SystemSetting(key="duplicate_similarity_threshold", value="0.6", value_type="float", description="Default duplicate warning threshold"),
-            SystemSetting(key="stale_hint_months", value="12", value_type="int", description="Months before showing may-be-outdated hint"),
-            SystemSetting(key="expert_vote_multiplier", value="1.3", value_type="float", description="Weight multiplier for senior-expert votes"),
-            SystemSetting(key="reputation_verified", value="10", value_type="int", description="Reputation for verified entry"),
-            SystemSetting(key="reputation_vote", value="2", value_type="int", description="Reputation for correct vote"),
-            SystemSetting(key="reputation_pr_merged", value="5", value_type="int", description="Reputation for merged PR"),
-            SystemSetting(key="reputation_cited", value="3", value_type="int", description="Reputation for citation"),
-        ]
-        db.add_all(settings)
-
-        # Seed one sample entry from Employee A (unverified)
-        author = created_users["Employee A"]
-        entry = Entry(
-            public_id="PP-BE-FRE-00001",
-            scope="country-specific",
-            department="Payroll",
-            country="BE",
-            category_id=payroll_category.id,
-            author_id=author.id,
-            team_id=payroll_team.id,
-        )
-        db.add(entry)
+        for data in teams:
+            team = db.query(Team).filter(Team.name == data["name"]).one()
+            team.lead_user_id = users[data["lead"]].id if data.get("lead") else None
+            for m in data.get("members", []):
+                db.add(TeamMembership(
+                    user_id=users[m["user"]].id,
+                    team_id=team.id,
+                    is_primary=m.get("primary", False),
+                    role=m.get("role", "Member"),
+                ))
         db.flush()
 
-        tag = Tag(name="dmfa")
-        db.add(tag)
-        db.flush()
-        entry.tags.append(tag)
-        author_tag = Tag(name=author.display_name.lower())
-        db.add(author_tag)
-        db.flush()
-        entry.tags.append(author_tag)
-
-        version = EntryVersion(
-            entry_id=entry.id,
-            version_number=1,
-            title="Belgian freelancer DMFA filing deadline",
-            body="Freelancers in Belgium must be reported to the DMFA at least once per quarter, via the client's payroll provider or social secretariat.",
-            justification="Official DMFA guidance and internal payroll playbook",
-            status=VersionStatus.UNVERIFIED.value,
-            change_note="Created",
-            edited_by_id=author.id,
-        )
-        db.add(version)
+        entries = _load("entries")
+        now = datetime.utcnow()
+        for data in entries:
+            _add_entry(db, data, users, now)
 
         db.commit()
-        print("Seeded database with demo users and one sample entry.")
+        print(f"Seeded database from {MOCK_DATA_DIR} ({len(users)} users, {len(entries)} entries).")
 
     seed_people()
-    seed_auth_settings()
+    seed_settings()
 
 
 def finish_legacy_pull_requests() -> None:
@@ -188,241 +171,70 @@ def finish_legacy_pull_requests() -> None:
         finish_legacy_author_approved(db)
 
 
-AUTH_SETTINGS = [
-    ("access_token_minutes", "15", "int", "Lifetime of an access token (JWT) in minutes"),
-    ("refresh_token_hours", "8", "int", "Lifetime of a refresh token in hours"),
-]
+def seed_settings() -> None:
+    """Add settings from settings.json that the database lacks (idempotent, also fills an already-seeded DB).
 
-
-def seed_auth_settings() -> None:
-    """Token lifetime settings Admins can change (idempotent, also fills an already-seeded DB)."""
+    This includes the token lifetimes (access_token_minutes, refresh_token_hours) Admins can change."""
     Base.metadata.create_all(bind=engine)
     with Session(engine) as db:
         existing = {s.key for s in db.query(SystemSetting).all()}
-        for key, value, value_type, description in AUTH_SETTINGS:
-            if key not in existing:
-                db.add(SystemSetting(key=key, value=value, value_type=value_type, description=description))
+        for data in _load("settings"):
+            if data["key"] not in existing:
+                db.add(SystemSetting(**data))
         db.commit()
 
 
-PEOPLE_EMAILS = {
-    "Employee A": "employee.a@sdworx.example",
-    "Employee B": "employee.b@sdworx.example",
-    "Employee C": "employee.c@sdworx.example",
-    "Senior Expert": "senior.expert@sdworx.example",
-    "Team Lead": "team.lead@sdworx.example",
-    "Manager": "manager@sdworx.example",
-}
-
-
 def seed_people() -> None:
-    """Demo teams/projects/roles for the employee profile pages (idempotent)."""
+    """Internal projects and their members from projects.json (idempotent, also fills an already-seeded DB)."""
     Base.metadata.create_all(bind=engine)
     with Session(engine) as db:
         if db.query(Project).first():
             return
-        users: dict[str, User] = {}
-        for label, email in PEOPLE_EMAILS.items():
-            u = db.query(User).filter(User.email == email).first()
-            if u is None:
-                return  # not the demo dataset
-            users[label] = u
+        projects = _load("projects")
+        emails = {p["lead"] for p in projects} | {m["user"] for p in projects for m in p["members"]}
+        users = {u.email: u for u in db.query(User).filter(User.email.in_(emails))}
+        if len(users) < len(emails):
+            return  # not the demo dataset
 
-        for u in db.query(User).filter(User.country.is_(None)).all():
-            u.country = "BE"
-
-        # Backfill the existing team: lead + membership roles
-        team = db.query(Team).filter(Team.name == "Payroll Consultants Belgium").first()
-        if team is not None:
-            team.lead_user_id = users["Team Lead"].id
-            for m in team.memberships:
-                if m.user_id == users["Team Lead"].id:
-                    m.role = "Lead"
-                elif m.user_id == users["Manager"].id:
-                    m.role = "Manager"
-
-        # Second team: all memberships non-primary (verification relies on primary teams)
-        experts = Team(
-            name="Payroll Experts",
-            department="Payroll",
-            description="Cross-team payroll subject matter experts",
-            lead_user_id=users["Senior Expert"].id,
-        )
-        db.add(experts)
-        db.flush()
-        for label, role in [("Senior Expert", "Lead"), ("Employee A", "Member"), ("Employee B", "Member")]:
-            db.add(
-                TeamMembership(
-                    user_id=users[label].id, team_id=experts.id, is_primary=False, role=role
-                )
+        for data in projects:
+            project = Project(
+                name=data["name"],
+                description=data.get("description"),
+                status=data.get("status", "active"),
+                lead_user_id=users[data["lead"]].id,
             )
-
-        def add_project(name, description, status, lead, members):
-            p = Project(
-                name=name,
-                description=description,
-                status=status,
-                lead_user_id=users[lead].id,
-            )
-            db.add(p)
+            db.add(project)
             db.flush()
-            for label, role, start, end in members:
-                db.add(
-                    ProjectMembership(
-                        user_id=users[label].id,
-                        project_id=p.id,
-                        role=role,
-                        start_date=start,
-                        end_date=end,
-                    )
-                )
-
-        add_project(
-            "Freelancer DMFA Automation",
-            "Automate quarterly DMFA reporting for freelancers and contractors.",
-            "active",
-            "Team Lead",
-            [
-                ("Employee A", "Contributor", date(2026, 1, 15), None),
-                ("Employee B", "Contributor", date(2026, 3, 1), None),
-                ("Senior Expert", "SME", date(2026, 1, 15), None),
-                ("Team Lead", "Project lead", date(2026, 1, 15), None),
-            ],
-        )
-        add_project(
-            "Contractor Onboarding Revamp",
-            "Redesign of the contractor onboarding process (finished).",
-            "completed",
-            "Manager",
-            [
-                ("Employee A", "Contributor", date(2025, 3, 1), date(2025, 9, 30)),
-                ("Employee C", "Contributor", date(2025, 3, 1), date(2025, 9, 30)),
-                ("Senior Expert", "SME", date(2025, 3, 1), date(2025, 9, 30)),
-                ("Manager", "Sponsor", date(2025, 3, 1), date(2025, 9, 30)),
-            ],
-        )
-        add_project(
-            "Quarterly Compliance Review",
-            "Quarterly review of payroll compliance rules and knowledge base entries.",
-            "active",
-            "Senior Expert",
-            [
-                ("Senior Expert", "Lead", date(2026, 4, 1), None),
-                ("Employee B", "Contributor", date(2026, 4, 1), None),
-                ("Employee C", "Contributor", date(2026, 4, 1), None),
-            ],
-        )
+            for m in data["members"]:
+                db.add(ProjectMembership(
+                    user_id=users[m["user"]].id,
+                    project_id=project.id,
+                    role=m.get("role", "Member"),
+                    start_date=date.fromisoformat(m["start_date"]),
+                    end_date=date.fromisoformat(m["end_date"]) if m.get("end_date") else None,
+                ))
         db.commit()
-        print("Seeded teams and projects.")
-
-
-HISTORY_DEMO_TAG = "history-demo"
+        print("Seeded projects.")
 
 
 def _insert_demo_entry(db: Session) -> str | None:
-    """Insert a 3-version entry (Created / Clarified / Fixed) for the change log demo. Returns its public id."""
-    users = {}
-    for label, email in PEOPLE_EMAILS.items():
-        u = db.query(User).filter(User.email == email).first()
-        if u is None:
-            return None
-        users[label] = u
-    if (
-        db.query(Entry)
-        .join(Entry.tags)
-        .filter(Tag.name == HISTORY_DEMO_TAG)
-        .first()
-    ):
+    """Insert the multi-version entry from history_demo.json for the change log demo. Returns its public id."""
+    if db.query(Entry).join(Entry.tags).filter(Tag.name == HISTORY_DEMO_TAG).first():
         return None
-    category = db.query(Category).filter(Category.is_default.is_(True)).first()
-    team = db.query(Team).filter(Team.name == "Payroll Consultants Belgium").first()
-    if category is None:
-        return None
-
+    entries = _load("history_demo")
+    emails = {d["author"] for d in entries} | {
+        email
+        for d in entries
+        for v in d["versions"]
+        for email in [v.get("edited_by", d["author"]), *(x["verifier"] for x in v.get("verifications", []))]
+    }
+    users = {u.email: u for u in db.query(User).filter(User.email.in_(emails))}
+    if not entries or len(users) < len(emails):
+        return None  # not the demo dataset
     now = datetime.utcnow()
-    t1, t2, t3 = now - timedelta(days=42), now - timedelta(days=21), now - timedelta(days=5)
-
-    s1 = "Belgian freelancers pay social-security contributions through a social insurance fund."
-    s2 = "The contribution rate is 20.5% of net taxable income."
-    s2b = "The contribution rate is 20.5% of net taxable income, payable quarterly in advance."
-    s3 = "Freelancers must register with a social insurance fund within 90 days of starting."
-    s4 = "Freelancers who also work as employees may qualify for an exemption."
-
-    entry = Entry(
-        public_id=make_public_id(db, "BE", category.name),
-        scope="country-specific",
-        department="Payroll",
-        country="BE",
-        category_id=category.id,
-        author_id=users["Employee A"].id,
-        team_id=team.id if team else None,
-        created_at=t1,
-        updated_at=t3,
-    )
-    db.add(entry)
-    db.flush()
-    for name in (HISTORY_DEMO_TAG, "social-security"):
-        tag = db.query(Tag).filter(Tag.name == name).first()
-        if tag is None:
-            tag = Tag(name=name)
-            db.add(tag)
-            db.flush()
-        entry.tags.append(tag)
-
-    def add_version(n, user, when, title, body, justification, status, note):
-        v = EntryVersion(
-            entry_id=entry.id,
-            version_number=n,
-            title=title,
-            body=body,
-            justification=justification,
-            status=status,
-            change_note=note,
-            edited_by_id=users[user].id,
-            created_at=when,
-        )
-        db.add(v)
-        db.flush()
-        return v
-
-    v1 = add_version(
-        1, "Employee A", t1,
-        "Belgian freelancer social-security contributions",
-        " ".join([s1, s2, s3]),
-        "NSSO guidance",
-        VersionStatus.VERIFIED.value,
-        "Created",
-    )
-    v2 = add_version(
-        2, "Employee B", t2,
-        "Belgian freelancer social-security contributions",
-        " ".join([s1, s2b, s3, s4]),
-        "NSSO guidance",
-        VersionStatus.VERIFIED.value,
-        "Clarified quarterly rate and added exemption",
-    )
-    add_version(
-        3, "Senior Expert", t3,
-        "Belgian freelancer social-security contributions (2026)",
-        " ".join([s2b, s3, s4]),
-        "NSSO guidance and the 2026 payroll playbook",
-        VersionStatus.UNVERIFIED.value,
-        "Fixed title, removed outdated sentence",
-    )
-    db.add(
-        Verification(
-            version_id=v1.id, verifier_id=users["Senior Expert"].id, role="Senior Expert",
-            action="verify", created_at=t1 + timedelta(days=1),
-        )
-    )
-    db.add(
-        Verification(
-            version_id=v2.id, verifier_id=users["Team Lead"].id, role="Team Lead",
-            action="verify", created_at=t2 + timedelta(days=1),
-        )
-    )
+    public_ids = [_add_entry(db, data, users, now).public_id for data in entries]
     db.commit()
-    return entry.public_id
+    return public_ids[0]
 
 
 def seed_history_demo() -> None:

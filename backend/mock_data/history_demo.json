@@ -1,0 +1,41 @@
+[
+  {
+    "scope": "country-specific",
+    "department": "Payroll",
+    "country": "BE",
+    "category": "Freelance / contractor payroll",
+    "author": "employee.a@sdworx.example",
+    "tags": ["history-demo", "social-security"],
+    "versions": [
+      {
+        "title": "Belgian freelancer social-security contributions",
+        "body": "Belgian freelancers pay social-security contributions through a social insurance fund. The contribution rate is 20.5% of net taxable income. Freelancers must register with a social insurance fund within 90 days of starting.",
+        "justification": "NSSO guidance",
+        "status": "Verified",
+        "change_note": "Created",
+        "edited_by": "employee.a@sdworx.example",
+        "created_days_ago": 42,
+        "verifications": [{ "verifier": "senior.expert@sdworx.example", "role": "Senior Expert", "days_ago": 41 }]
+      },
+      {
+        "title": "Belgian freelancer social-security contributions",
+        "body": "Belgian freelancers pay social-security contributions through a social insurance fund. The contribution rate is 20.5% of net taxable income, payable quarterly in advance. Freelancers must register with a social insurance fund within 90 days of starting. Freelancers who also work as employees may qualify for an exemption.",
+        "justification": "NSSO guidance",
+        "status": "Verified",
+        "change_note": "Clarified quarterly rate and added exemption",
+        "edited_by": "employee.b@sdworx.example",
+        "created_days_ago": 21,
+        "verifications": [{ "verifier": "team.lead@sdworx.example", "role": "Team Lead", "days_ago": 20 }]
+      },
+      {
+        "title": "Belgian freelancer social-security contributions (2026)",
+        "body": "The contribution rate is 20.5% of net taxable income, payable quarterly in advance. Freelancers must register with a social insurance fund within 90 days of starting. Freelancers who also work as employees may qualify for an exemption.",
+        "justification": "NSSO guidance and the 2026 payroll playbook",
+        "status": "Unverified",
+        "change_note": "Fixed title, removed outdated sentence",
+        "edited_by": "senior.expert@sdworx.example",
+        "created_days_ago": 5
+      }
+    ]
+  }
+]

@@ -1,0 +1,75 @@
+[
+  {
+    "id": "m1",
+    "type": "meeting",
+    "title": "Payroll BE weekly",
+    "date": "2026-10-14",
+    "file": "meetings/m1-payroll-be-weekly.vtt",
+    "expected": "expected/m1-payroll-be-weekly.json",
+    "participants": [
+      "team.lead@sdworx.example",
+      "employee.a@sdworx.example",
+      "employee.b@sdworx.example",
+      "employee.c@sdworx.example",
+      "manager@sdworx.example"
+    ],
+    "guests": []
+  },
+  {
+    "id": "m2",
+    "type": "meeting",
+    "title": "Dutch freelancer on-site in Belgium",
+    "date": "2026-10-08",
+    "file": "meetings/m2-dutch-freelancer-onsite.vtt",
+    "expected": "expected/m2-dutch-freelancer-onsite.json",
+    "participants": [
+      "employee.c@sdworx.example",
+      "senior.expert@sdworx.example",
+      "employee.a@sdworx.example"
+    ],
+    "guests": ["Lotte (Guest)"]
+  },
+  {
+    "id": "m3",
+    "type": "meeting",
+    "title": "Q3 contractor payroll review",
+    "date": "2026-10-01",
+    "file": "meetings/m3-q3-contractor-review.vtt",
+    "expected": "expected/m3-q3-contractor-review.json",
+    "participants": [
+      "manager@sdworx.example",
+      "team.lead@sdworx.example",
+      "senior.expert@sdworx.example",
+      "employee.a@sdworx.example",
+      "employee.b@sdworx.example"
+    ],
+    "guests": []
+  },
+  {
+    "id": "c1",
+    "type": "chat",
+    "title": "Payroll BE — questions",
+    "date_from": "2026-10-01",
+    "date_to": "2026-10-14",
+    "file": "chats/c1-payroll-be-questions.json",
+    "expected": "expected/c1-payroll-be-questions.json"
+  },
+  {
+    "id": "c2",
+    "type": "chat",
+    "title": "Contractor payroll — announcements",
+    "date_from": "2026-09-22",
+    "date_to": "2026-10-16",
+    "file": "chats/c2-contractor-announcements.json",
+    "expected": "expected/c2-contractor-announcements.json"
+  },
+  {
+    "id": "c3",
+    "type": "chat",
+    "title": "Freelance onboarding — cross-team",
+    "date_from": "2026-10-05",
+    "date_to": "2026-10-12",
+    "file": "chats/c3-freelance-onboarding.json",
+    "expected": "expected/c3-freelance-onboarding.json"
+  }
+]

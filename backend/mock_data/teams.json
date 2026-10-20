@@ -1,0 +1,26 @@
+[
+  {
+    "name": "Payroll Consultants Belgium",
+    "department": "Payroll",
+    "description": "Belgian payroll consulting team",
+    "lead": "team.lead@sdworx.example",
+    "members": [
+      { "user": "employee.a@sdworx.example", "role": "Member", "primary": true },
+      { "user": "employee.b@sdworx.example", "role": "Member", "primary": true },
+      { "user": "employee.c@sdworx.example", "role": "Member", "primary": true },
+      { "user": "team.lead@sdworx.example", "role": "Lead", "primary": true },
+      { "user": "manager@sdworx.example", "role": "Manager", "primary": true }
+    ]
+  },
+  {
+    "name": "Payroll Experts",
+    "department": "Payroll",
+    "description": "Cross-team payroll subject matter experts",
+    "lead": "senior.expert@sdworx.example",
+    "members": [
+      { "user": "senior.expert@sdworx.example", "role": "Lead", "primary": false },
+      { "user": "employee.a@sdworx.example", "role": "Member", "primary": false },
+      { "user": "employee.b@sdworx.example", "role": "Member", "primary": false }
+    ]
+  }
+]

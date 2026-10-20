@@ -1,0 +1,60 @@
+{
+  "chat": { "id": "c1", "title": "Payroll BE — questions", "type": "group" },
+  "exported_at": "2026-10-14T18:00:00+02:00",
+  "range": { "from": "2026-10-01", "to": "2026-10-14" },
+  "members": [
+    { "email": "employee.a@sdworx.example", "display_name": "Employee A" },
+    { "email": "employee.b@sdworx.example", "display_name": "Employee B" },
+    { "email": "employee.c@sdworx.example", "display_name": "Employee C" },
+    { "email": "senior.expert@sdworx.example", "display_name": "Senior Expert" },
+    { "email": "team.lead@sdworx.example", "display_name": "Team Lead" }
+  ],
+  "messages": [
+    { "id": "c1-001", "from": "team.lead@sdworx.example", "created_at": "2026-10-01T08:47:00+02:00", "text": "morning all ☀️", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-002", "from": "employee.b@sdworx.example", "created_at": "2026-10-01T08:52:00+02:00", "text": "morning!", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-003", "from": "employee.b@sdworx.example", "created_at": "2026-10-02T09:14:00+02:00", "text": "how do we handle a CN from a contractor if the original invoice was already paid?", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-004", "from": "employee.b@sdworx.example", "created_at": "2026-10-02T09:15:00+02:00", "text": "it's for one of my contractors, they invoiced 2 days too many in september", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-005", "from": "employee.a@sdworx.example", "created_at": "2026-10-02T11:02:00+02:00", "text": "good question, I always forget too 😅 @Senior Expert?", "reply_to_id": "c1-003", "reactions": [], "mentions": ["senior.expert@sdworx.example"] },
+    { "id": "c1-006", "from": "employee.c@sdworx.example", "created_at": "2026-10-02T11:45:00+02:00", "text": "lunch at 12?", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-007", "from": "employee.a@sdworx.example", "created_at": "2026-10-02T11:47:00+02:00", "text": "yes 🍝", "reply_to_id": "c1-006", "reactions": [] },
+    { "id": "c1-008", "from": "senior.expert@sdworx.example", "created_at": "2026-10-02T13:40:12+02:00", "text": "don't pay it out", "reply_to_id": "c1-003", "reactions": [] },
+    { "id": "c1-009", "from": "senior.expert@sdworx.example", "created_at": "2026-10-02T13:40:31+02:00", "text": "register it and deduct it from the next invoice of the same contractor", "reply_to_id": null, "reactions": [] },
+    {
+      "id": "c1-010", "from": "senior.expert@sdworx.example", "created_at": "2026-10-02T13:41:05+02:00",
+      "text": "if there's no next invoice within 2 months, ask Finance for a refund request", "reply_to_id": null,
+      "reactions": [
+        { "emoji": "👍", "by": "team.lead@sdworx.example" },
+        { "emoji": "❤️", "by": "employee.b@sdworx.example" }
+      ]
+    },
+    { "id": "c1-011", "from": "employee.c@sdworx.example", "created_at": "2026-10-02T14:05:00+02:00", "text": "confirmed, did exactly that last month 👍", "reply_to_id": "c1-010", "reactions": [] },
+    { "id": "c1-012", "from": "employee.b@sdworx.example", "created_at": "2026-10-02T14:10:00+02:00", "text": "thx!!", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-013", "from": "employee.c@sdworx.example", "created_at": "2026-10-06T10:03:00+02:00", "text": "where's the monthly contractor overview template again?", "reply_to_id": null, "reactions": [] },
+    {
+      "id": "c1-014", "from": "employee.a@sdworx.example", "created_at": "2026-10-06T10:30:00+02:00",
+      "text": "team sharepoint > Templates > Contractors, TL moved it there in sept", "reply_to_id": "c1-013",
+      "reactions": [{ "emoji": "👍", "by": "team.lead@sdworx.example" }]
+    },
+    { "id": "c1-015", "from": "employee.c@sdworx.example", "created_at": "2026-10-06T10:31:00+02:00", "text": "found it, thanks", "reply_to_id": "c1-014", "reactions": [] },
+    { "id": "c1-016", "from": "employee.b@sdworx.example", "created_at": "2026-10-07T15:20:00+02:00", "text": "is the payroll portal slow for anyone else or just me", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-017", "from": "employee.a@sdworx.example", "created_at": "2026-10-07T15:22:00+02:00", "text": "slow here too", "reply_to_id": "c1-016", "reactions": [] },
+    { "id": "c1-018", "from": "team.lead@sdworx.example", "created_at": "2026-10-07T15:40:00+02:00", "text": "IT is on it, should be fixed in an hour", "reply_to_id": "c1-016", "reactions": [] },
+    { "id": "c1-019", "from": "employee.c@sdworx.example", "created_at": "2026-10-08T09:05:00+02:00", "text": "the coffee machine on 3 is broken again ☕💀", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-020", "from": "employee.b@sdworx.example", "created_at": "2026-10-08T09:06:00+02:00", "text": "", "reply_to_id": "c1-019", "reactions": [], "attachments": [{ "type": "gif", "name": "this-is-fine.gif" }] },
+    { "id": "c1-021", "from": "employee.a@sdworx.example", "created_at": "2026-10-08T09:07:00+02:00", "text": "😂", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-022", "from": "employee.b@sdworx.example", "created_at": "2026-10-09T11:12:00+02:00", "text": "are freelancer travel costs paid via payroll?", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-023", "from": "employee.b@sdworx.example", "created_at": "2026-10-09T11:13:00+02:00", "text": "one of my contractors sent train tickets as a separate expense note", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-024", "from": "team.lead@sdworx.example", "created_at": "2026-10-09T14:30:00+02:00", "text": "no — freelancers invoice travel costs themselves, we only process the invoice", "reply_to_id": "c1-022", "reactions": [] },
+    { "id": "c1-025", "from": "team.lead@sdworx.example", "created_at": "2026-10-09T14:32:00+02:00", "text": "so ask them to put the tickets on their invoice, not on a separate note", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-026", "from": "employee.a@sdworx.example", "created_at": "2026-10-09T14:35:00+02:00", "text": "yep, correct", "reply_to_id": "c1-024", "reactions": [] },
+    { "id": "c1-027", "from": "employee.b@sdworx.example", "created_at": "2026-10-09T14:41:00+02:00", "text": "ok thx", "reply_to_id": null, "reactions": [] },
+    {
+      "id": "c1-028", "from": "employee.b@sdworx.example", "created_at": "2026-10-10T16:02:00+02:00",
+      "text": "anyone knows if the Luxembourg rules are the same? 🤔", "reply_to_id": null,
+      "reactions": [{ "emoji": "👀", "by": "employee.c@sdworx.example" }]
+    },
+    { "id": "c1-029", "from": "team.lead@sdworx.example", "created_at": "2026-10-13T09:30:00+02:00", "text": "reminder: team photo on Thursday at 10 📸", "reply_to_id": null, "reactions": [] },
+    { "id": "c1-030", "from": "employee.b@sdworx.example", "created_at": "2026-10-13T09:33:00+02:00", "text": "noooo 🙈", "reply_to_id": "c1-029", "reactions": [] },
+    { "id": "c1-031", "from": "employee.a@sdworx.example", "created_at": "2026-10-14T17:45:00+02:00", "text": "have a nice evening all 👋", "reply_to_id": null, "reactions": [] }
+  ]
+}

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react"
-import { api } from "@/lib/api"
+import { api, type EntryDiff } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/page-header"
 import { TrustBadge } from "@/components/trust-badge"
+import { DiffView } from "@/components/diff-view"
 import { Link } from "react-router-dom"
 
 export function ApprovalsPage() {
@@ -10,6 +11,7 @@ export function ApprovalsPage() {
   const [loading, setLoading] = useState(true)
   const [actionVersion, setActionVersion] = useState<number | null>(null)
   const [comment, setComment] = useState("")
+  const [diffs, setDiffs] = useState<Record<number, EntryDiff | "loading" | "error" | null>>({})
 
   const load = () => {
     setLoading(true)
@@ -35,6 +37,21 @@ export function ApprovalsPage() {
     load()
   }
 
+  const toggleDiff = async (item: any) => {
+    const id = item.version.id
+    if (diffs[id]) {
+      setDiffs((d) => ({ ...d, [id]: null }))
+      return
+    }
+    setDiffs((d) => ({ ...d, [id]: "loading" }))
+    try {
+      const diff = await api.entries.diff(item.entry.public_id, item.version.version_number)
+      setDiffs((d) => ({ ...d, [id]: diff }))
+    } catch {
+      setDiffs((d) => ({ ...d, [id]: "error" }))
+    }
+  }
+
   if (loading) return <div className="text-stone-500">Loading…</div>
 
   return (
@@ -50,12 +67,26 @@ export function ApprovalsPage() {
                 <div>
                   <h3 className="font-medium">{item.version.title}</h3>
                   <p className="mt-1 text-sm text-stone-500">
-                    {item.entry.public_id} · {item.entry.country} · by {item.entry.author.display_name}
+                    {item.entry.public_id} · {item.entry.country} · by{" "}
+                    <Link to={`/people/${item.entry.author.id}`} className="hover:underline">{item.entry.author.display_name}</Link>
                   </p>
                 </div>
                 <TrustBadge status={item.version.status} />
               </div>
               <p className="mt-2 text-sm text-stone-700 line-clamp-3">{item.version.body}</p>
+              {typeof diffs[item.version.id] === "object" && diffs[item.version.id] !== null && (
+                <div className="mt-3">
+                  <DiffView diff={diffs[item.version.id] as EntryDiff} />
+                </div>
+              )}
+              {diffs[item.version.id] === "loading" && <div className="mt-3 text-sm text-stone-500">Loading changes…</div>}
+              {diffs[item.version.id] === "error" && <div className="mt-3 text-sm text-red-600">Failed to load changes</div>}
+              {item.entry.difference_note && (
+                <div className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-600/20">
+                  <div className="text-xs font-medium text-amber-700">Author's note: why is this different?</div>
+                  <p className="mt-1 whitespace-pre-wrap">{item.entry.difference_note}</p>
+                </div>
+              )}
               {actionVersion === item.version.id ? (
                 <div className="mt-3 space-y-2">
                   <textarea
@@ -77,6 +108,11 @@ export function ApprovalsPage() {
                   <Link to={`/entries/${item.entry.public_id}`}>
                     <Button variant="secondary" size="sm">View entry</Button>
                   </Link>
+                  {item.version.version_number > 1 && (
+                    <Button variant="ghost" size="sm" onClick={() => toggleDiff(item)}>
+                      {diffs[item.version.id] ? "Hide changes" : "Show changes"}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>

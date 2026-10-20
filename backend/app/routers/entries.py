@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.deps.auth import get_current_user, get_current_user_optional, load_user, user_to_out
-from app.models import Category, Entry, EntryVersion, Tag, User, VersionStatus
+from app.deps.auth import get_current_user, load_user, user_to_out
+from app.models import Category, Entry, EntryVersion, RoleType, Tag, User, VersionStatus
 from app.schemas import (
     EntryCreate,
     EntryDetailOut,
@@ -15,7 +15,11 @@ from app.schemas import (
     EntryVersionOut,
     PersonBrief,
 )
-from app.services.permissions import can_edit_own_unverified, get_verifiers_for_entry
+from app.services.permissions import (
+    can_edit_own_unverified,
+    get_verifiers_for_entry,
+    user_has_role,
+)
 from app.services.public_id import make_public_id
 
 router = APIRouter(prefix="/entries", tags=["entries"])
@@ -76,6 +80,17 @@ def _entry_to_out(
     can_edit = False
     if current_user and current:
         can_edit = can_edit_own_unverified(current_user, entry, current)
+    who_to_ask = _who_to_ask(db, entry)
+
+    # The note is only for the author, admins and verifiers of this entry.
+    note = None
+    if entry.difference_note and current_user:
+        if (
+            entry.author_id == current_user.id
+            or user_has_role(current_user, RoleType.ADMIN.value)
+            or any(v.id == current_user.id for v in get_verifiers_for_entry(db, entry))
+        ):
+            note = entry.difference_note
     return EntryOut(
         id=entry.id,
         public_id=entry.public_id,
@@ -94,7 +109,8 @@ def _entry_to_out(
         created_at=entry.created_at,
         updated_at=entry.updated_at,
         can_edit=can_edit,
-        who_to_ask=_who_to_ask(db, entry),
+        who_to_ask=who_to_ask,
+        difference_note=note,
     )
 
 
@@ -190,6 +206,7 @@ def create_entry(
         author_id=author.id,
         team_id=team_id,
         is_published=True,
+        difference_note=(body.difference_note or "").strip() or None,
     )
     db.add(entry)
     db.flush()
@@ -223,7 +240,7 @@ def create_entry(
 def get_entry(
     public_id: str,
     db: Session = Depends(get_db),
-    user: User | None = Depends(get_current_user_optional),
+    user: User = Depends(get_current_user),
 ) -> EntryDetailOut:
     entry = (
         db.query(Entry)
@@ -241,6 +258,7 @@ def get_version(
     public_id: str,
     version_number: int,
     db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
 ) -> EntryVersionOut:
     entry = db.query(Entry).filter(Entry.public_id == public_id).first()
     if entry is None:

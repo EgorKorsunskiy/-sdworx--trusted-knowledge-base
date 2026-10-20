@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { AuthProvider, useAuth } from "@/hooks/useAuth"
 import { AppShell } from "@/components/app-shell"
 import { LoginPage } from "@/pages/login-page"
+import { AuthCallbackPage } from "@/pages/auth-callback-page"
 import { SearchPage } from "@/pages/search-page"
 import { AddEntryPage } from "@/pages/add-entry-page"
 import { EntryPage } from "@/pages/entry-page"
@@ -10,6 +11,9 @@ import { ApprovalsPage } from "@/pages/approvals-page"
 import { NotificationsPage } from "@/pages/notifications-page"
 import { ContributionsPage } from "@/pages/contributions-page"
 import { AdminPage } from "@/pages/admin-page"
+import { EmployeeProfilePage } from "@/pages/employee-profile-page"
+import { TeamPage } from "@/pages/team-page"
+import { ProjectPage } from "@/pages/project-page"
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -22,6 +26,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route
         path="/*"
         element={
@@ -33,6 +38,9 @@ function AppRoutes() {
                 <Route path="/entries/:publicId" element={<EntryPage />} />
                 <Route path="/approvals" element={<ApprovalsPage />} />
                 <Route path="/contributions" element={<ContributionsPage />} />
+                <Route path="/people/:id" element={<EmployeeProfilePage />} />
+                <Route path="/teams/:id" element={<TeamPage />} />
+                <Route path="/projects/:id" element={<ProjectPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
               </Routes>
